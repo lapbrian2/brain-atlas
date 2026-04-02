@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
 import BrainScene from './components/canvas/BrainScene'
 import PostProcessing from './components/canvas/PostProcessing'
+import HUD from './components/ui/HUD'
 import './App.css'
 
 function App() {
@@ -29,6 +30,8 @@ function App() {
           </Suspense>
         </Canvas>
       </div>
+
+      <HUD />
 
       <div className="loading-fallback" style={{ display: 'none' }}>
         Loading neural atlas...

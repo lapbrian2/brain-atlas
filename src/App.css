@@ -78,3 +78,291 @@ body {
   color: rgba(255, 255, 255, 0.4);
   letter-spacing: 0.1em;
 }
+
+/* ============================================================
+   Region Panel — slide-in from right
+   ============================================================ */
+.region-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 340px;
+  height: 100vh;
+  background: rgba(6, 6, 18, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 32px 24px;
+  z-index: 20;
+  overflow-y: auto;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: 'Inter', sans-serif;
+}
+
+.region-panel__close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.6);
+  width: 28px;
+  height: 28px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'IBM Plex Mono', monospace;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.region-panel__close:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  color: white;
+}
+
+.region-panel__lobe {
+  font-size: 0.65rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 8px;
+}
+
+.region-panel__name {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 300;
+  font-size: 1.25rem;
+  color: white;
+  margin: 0 0 16px 0;
+  line-height: 1.3;
+}
+
+.region-panel__desc {
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0 0 20px 0;
+}
+
+.region-panel__heading {
+  font-size: 0.65rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 20px 0 10px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 14px;
+}
+
+.region-panel__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.region-panel__list li {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 4px 0;
+  line-height: 1.5;
+}
+
+.region-panel__conn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.region-panel__conn-btn {
+  background: none;
+  border: none;
+  color: #00E5FF;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-family: 'Inter', sans-serif;
+  padding: 0;
+  text-align: left;
+  transition: color 0.15s;
+}
+
+.region-panel__conn-btn:hover {
+  color: white;
+}
+
+.region-panel__conn-meta {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.3);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* ============================================================
+   View Controls — bottom center bar
+   ============================================================ */
+.view-controls {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 2px;
+  z-index: 15;
+  background: rgba(6, 6, 18, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 4px;
+}
+
+.view-controls__btn {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+
+.view-controls__btn:hover {
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.view-controls__btn--active {
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ============================================================
+   Search Bar — top right
+   ============================================================ */
+.search-bar {
+  position: fixed;
+  top: 32px;
+  right: 40px;
+  z-index: 15;
+  width: 220px;
+}
+
+.search-bar__input {
+  width: 100%;
+  background: rgba(6, 6, 18, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.75rem;
+  padding: 8px 12px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.search-bar__input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.search-bar__input:focus {
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.search-bar__results {
+  list-style: none;
+  padding: 0;
+  margin: 2px 0 0 0;
+  background: rgba(6, 6, 18, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.search-bar__result-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  background: none;
+  border: none;
+  color: white;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.75rem;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.search-bar__result-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.search-bar__result-name {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.search-bar__result-lobe {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* ============================================================
+   Task Selector — bottom-left in activity mode
+   ============================================================ */
+.task-selector {
+  position: fixed;
+  bottom: 100px;
+  left: 40px;
+  z-index: 15;
+  width: 260px;
+  background: rgba(6, 6, 18, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 14px 16px;
+}
+
+.task-selector__label {
+  display: block;
+  font-size: 0.6rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 8px;
+}
+
+.task-selector__select {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: white;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.75rem;
+  padding: 6px 8px;
+  outline: none;
+  cursor: pointer;
+}
+
+.task-selector__select option {
+  background: #0a0a1a;
+  color: white;
+}
+
+.task-selector__desc {
+  font-size: 0.7rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.45);
+  margin: 10px 0 0 0;
+}
