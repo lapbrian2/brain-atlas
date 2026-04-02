@@ -126,6 +126,35 @@ function fbmDomainWarped(
 }
 
 /**
+ * Ridged noise — creates sharp valleys (sulci) between smooth peaks (gyri).
+ * The key to brain-like folded ribbon appearance.
+ * Inverts absolute value of noise to create ridges with deep grooves.
+ */
+function ridgedNoise(
+  x: number, y: number, z: number,
+  perm: Uint8Array,
+  octaves: number,
+  freq: number,
+  amp: number,
+): number {
+  let value = 0
+  let weight = 1.0
+  let f = freq
+  let a = amp
+  for (let i = 0; i < octaves; i++) {
+    let signal = simplex3(x * f, y * f, z * f, perm)
+    signal = a * (1.0 - Math.abs(signal))  // Ridge: invert absolute value
+    signal *= signal                          // Sharpen the ridges
+    signal *= weight                          // Weight by previous octave
+    weight = Math.min(signal * 2.0, 1.0)     // Constrain weight
+    value += signal
+    f *= 2.1
+    a *= 0.5
+  }
+  return value
+}
+
+/**
  * Anisotropic FBM for cerebellar folia — tight parallel ridges.
  * High frequency on the Y axis, low frequency on X/Z to create
  * the characteristic horizontal striping of the cerebellum.
@@ -453,12 +482,19 @@ function createBrainGeometry(
         region.warpStrength,
       )
     } else {
-      // Cortical regions: domain-warped FBM for deep realistic folding
-      displacement = fbmDomainWarped(
+      // Cortical regions: ridged noise (70%) for gyri/sulci fold structure
+      // mixed with domain-warped FBM (30%) for organic variation.
+      // Ridged noise creates the sharp valleys (sulci) between smooth peaks (gyri).
+      const ridged = ridgedNoise(
         x, y, z, perm,
-        region.noiseOctaves, region.noiseFreq, region.noiseAmp,
+        5, region.noiseFreq, region.noiseAmp,
+      )
+      const smooth = fbmDomainWarped(
+        x, y, z, perm,
+        4, region.noiseFreq * 0.5, region.noiseAmp * 0.3,
         region.warpStrength,
       )
+      displacement = ridged * 0.7 + smooth * 0.3
     }
 
     positions.setXYZ(
@@ -531,33 +567,115 @@ function RegionMesh({ region }: { region: AnatomicalRegion }) {
 
   const selectedRegion = useBrainStore((s) => s.selectedRegion)
   const hoveredRegion = useBrainStore((s) => s.hoveredRegion)
+  const brainOpacity = useBrainStore((s) => s.brainOpacity)
 
-  const baseColor = useMemo(() => new THREE.Color(region.color), [region.color])
-  const deepColor = useMemo(() => new THREE.Color(region.deeperColor), [region.deeperColor])
+  // Store original material color for lerp-back
+  const originalColor = useRef(new THREE.Color())
+  const originalEmissive = useRef(new THREE.Color())
 
   const geometry = useMemo(() => createBrainGeometry(region), [region])
 
   const material = useMemo(() => {
-    const mat = new THREE.MeshPhysicalMaterial({
-      color: baseColor,
-      roughness: 0.52,
-      metalness: 0.02,
-      clearcoat: 0.25,
-      clearcoatRoughness: 0.35,
-      sheen: 0.3,
-      sheenColor: new THREE.Color('#E8C4A4'),
-      sheenRoughness: 0.6,
-      emissive: deepColor,
-      emissiveIntensity: 0.02,
-      transparent: true,
-      opacity: 0.95,
-    })
+    // Per-structure-type materials for anatomical realism
+    let mat: THREE.MeshPhysicalMaterial
+
+    if (region.geometryType === 'cerebellum') {
+      // Cerebellum: slightly darker, more pink, tighter surface texture
+      mat = new THREE.MeshPhysicalMaterial({
+        color: new THREE.Color('#D4A090'),
+        roughness: 0.75,
+        metalness: 0.0,
+        clearcoat: 0.06,
+        clearcoatRoughness: 0.65,
+        sheen: 0.35,
+        sheenColor: new THREE.Color('#C08070'),
+        sheenRoughness: 0.5,
+        transmission: 0.02,
+        thickness: 0.5,
+        emissive: new THREE.Color('#1a0808'),
+        emissiveIntensity: 0.04,
+        transparent: true,
+        opacity: 0.95,
+      })
+    } else if (region.geometryType === 'brainstem') {
+      // Brainstem: smoother, paler, less sheen
+      mat = new THREE.MeshPhysicalMaterial({
+        color: new THREE.Color('#E0C0B0'),
+        roughness: 0.78,
+        metalness: 0.0,
+        clearcoat: 0.04,
+        clearcoatRoughness: 0.7,
+        sheen: 0.2,
+        sheenColor: new THREE.Color('#C0A090'),
+        sheenRoughness: 0.6,
+        transmission: 0.01,
+        thickness: 0.4,
+        emissive: new THREE.Color('#120606'),
+        emissiveIntensity: 0.03,
+        transparent: true,
+        opacity: 0.95,
+      })
+    } else if (region.id === 'corpus-callosum-mesh') {
+      // Corpus callosum: white matter -- much whiter, smoother
+      mat = new THREE.MeshPhysicalMaterial({
+        color: new THREE.Color('#F0E8E0'),
+        roughness: 0.68,
+        metalness: 0.0,
+        clearcoat: 0.05,
+        clearcoatRoughness: 0.6,
+        sheen: 0.15,
+        sheenColor: new THREE.Color('#E0D0C0'),
+        sheenRoughness: 0.5,
+        transmission: 0.01,
+        thickness: 0.3,
+        emissive: new THREE.Color('#0a0404'),
+        emissiveIntensity: 0.02,
+        transparent: true,
+        opacity: 0.95,
+      })
+    } else if (region.id === 'subcortical-group') {
+      // Subcortical: slightly darker, more gray
+      mat = new THREE.MeshPhysicalMaterial({
+        color: new THREE.Color('#C0A090'),
+        roughness: 0.74,
+        metalness: 0.0,
+        clearcoat: 0.06,
+        clearcoatRoughness: 0.65,
+        sheen: 0.3,
+        sheenColor: new THREE.Color('#B08878'),
+        sheenRoughness: 0.5,
+        transmission: 0.02,
+        thickness: 0.5,
+        emissive: new THREE.Color('#140808'),
+        emissiveIntensity: 0.04,
+        transparent: true,
+        opacity: 0.95,
+      })
+    } else {
+      // Cortex (hemispheres): pinkish-gray, moist matte, subtle sheen
+      mat = new THREE.MeshPhysicalMaterial({
+        color: new THREE.Color('#E8C4A8'),
+        roughness: 0.72,
+        metalness: 0.0,
+        clearcoat: 0.08,
+        clearcoatRoughness: 0.6,
+        sheen: 0.4,
+        sheenColor: new THREE.Color('#D4908A'),
+        sheenRoughness: 0.5,
+        transmission: 0.02,
+        thickness: 0.5,
+        emissive: new THREE.Color('#1a0808'),
+        emissiveIntensity: 0.05,
+        transparent: true,
+        opacity: 0.95,
+      })
+    }
 
     // Apply fresnel rim effect for tech/scan look
     applyFresnelShader(mat)
 
     return mat
-  }, [baseColor, deepColor])
+  }, [region.geometryType, region.id])
 
   // Determine if this mesh is hovered/selected based on data region mapping
   const isSelected = useMemo(() => {
@@ -574,6 +692,12 @@ function RegionMesh({ region }: { region: AnatomicalRegion }) {
 
   const isDimmed = selectedRegion !== null && !isSelected
 
+  // Capture original material colors once created
+  useMemo(() => {
+    originalColor.current.copy(material.color)
+    originalEmissive.current.copy(material.emissive)
+  }, [material])
+
   // Smooth scale animation
   const targetScale = useRef(new THREE.Vector3(...region.scale))
   const currentScale = useRef(new THREE.Vector3(...region.scale))
@@ -582,8 +706,9 @@ function RegionMesh({ region }: { region: AnatomicalRegion }) {
     if (!meshRef.current) return
     const mat = meshRef.current.material as THREE.MeshPhysicalMaterial
 
-    // Opacity
-    const targetOpacity = isDimmed ? 0.4 : 0.95
+    // Opacity — respects brainOpacity from store (e.g. 0.35 in connectivity mode)
+    const baseOpacity = brainOpacity
+    const targetOpacity = isDimmed ? Math.min(0.4, baseOpacity) : baseOpacity
     mat.opacity += (targetOpacity - mat.opacity) * 0.08
 
     // Emissive
@@ -617,8 +742,8 @@ function RegionMesh({ region }: { region: AnatomicalRegion }) {
         mat.emissiveIntensity = Math.max(mat.emissiveIntensity, maxActivation * 0.5)
       }
     } else {
-      mat.color.lerp(baseColor, 0.04)
-      mat.emissive.lerp(deepColor, 0.04)
+      mat.color.lerp(originalColor.current, 0.04)
+      mat.emissive.lerp(originalEmissive.current, 0.04)
     }
   })
 

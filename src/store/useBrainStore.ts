@@ -10,6 +10,7 @@ interface BrainState {
   selectedRegion: string | null
   hoveredRegion: string | null
   activeTask: string
+  brainOpacity: number
 
   setViewMode: (mode: ViewMode) => void
   toggleLayer: (layer: Layer) => void
@@ -32,11 +33,13 @@ export const useBrainStore = create<BrainState>()(
     selectedRegion: null,
     hoveredRegion: null,
     activeTask: 'rest',
+    brainOpacity: 0.95,
 
     setViewMode: (mode) =>
       set({
         viewMode: mode,
         activeLayers: new Set(VIEW_MODE_LAYERS[mode]),
+        brainOpacity: mode === 'connectivity' ? 0.35 : 0.95,
       }),
 
     toggleLayer: (layer) =>

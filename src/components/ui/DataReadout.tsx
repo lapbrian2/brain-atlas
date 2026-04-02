@@ -47,7 +47,7 @@ export default function DataReadout() {
     <div
       style={{
         position: 'fixed',
-        bottom: 28,
+        top: 60,
         right: 28,
         zIndex: 10,
         fontFamily: "'IBM Plex Mono', monospace",

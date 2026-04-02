@@ -6,6 +6,10 @@ export interface BrainRegion {
   functions: string[]
   position: [number, number, number]
   color: string
+  brodmannAreas?: number[]
+  bloodSupply: string
+  clinicalSignificance: string
+  pathologies: string[]
 }
 
 export const BRAIN_REGIONS: BrainRegion[] = [
@@ -26,6 +30,10 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [0, 0.5, 0.9],
     color: '#4A90D9',
+    brodmannAreas: [9, 10, 11, 12, 46, 47],
+    bloodSupply: 'Anterior cerebral artery (medial), Middle cerebral artery (lateral)',
+    clinicalSignificance: 'Damage causes dysexecutive syndrome: impaired planning, personality changes, poor social judgment, and apathy. Prefrontal lobotomy historically severed connections here.',
+    pathologies: ['Frontotemporal dementia', 'ADHD', 'Schizophrenia (hypofrontality)', 'Depression', 'Traumatic brain injury'],
   },
   {
     id: 'motor-cortex',
@@ -41,6 +49,10 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [0, 0.7, 0.3],
     color: '#E74C3C',
+    brodmannAreas: [4, 6],
+    bloodSupply: 'Anterior cerebral artery (leg/foot area), Middle cerebral artery (face/arm area)',
+    clinicalSignificance: 'Lesions cause contralateral upper motor neuron weakness (hemiparesis). Somatotopic organization means focal lesions produce specific deficits (e.g., hand weakness from middle cerebral artery stroke).',
+    pathologies: ['Stroke (MCA territory)', 'ALS (upper motor neuron degeneration)', 'Brain tumors (glioma)', 'Todd paralysis (post-seizure)'],
   },
   {
     id: 'brocas-area',
@@ -57,6 +69,10 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [-0.6, 0.3, 0.7],
     color: '#F39C12',
+    brodmannAreas: [44, 45],
+    bloodSupply: 'Middle cerebral artery (superior division)',
+    clinicalSignificance: "Damage causes Broca's aphasia: non-fluent, effortful speech with relatively preserved comprehension. Patients understand language but cannot produce fluent speech.",
+    pathologies: ["Broca's aphasia (stroke)", 'Primary progressive aphasia (non-fluent variant)', 'Left MCA stroke'],
   },
 
   // === PARIETAL LOBE ===
@@ -75,6 +91,10 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [0, 0.7, 0.0],
     color: '#2ECC71',
+    brodmannAreas: [1, 2, 3],
+    bloodSupply: 'Anterior cerebral artery (medial leg/foot), Middle cerebral artery (lateral face/arm)',
+    clinicalSignificance: 'Lesions cause contralateral cortical sensory loss: impaired two-point discrimination, astereognosis, and loss of position sense while pain/temperature (thalamic) may be preserved.',
+    pathologies: ['Stroke (sensory cortex territory)', 'Cortical sensory syndrome', 'Parietal lobe epilepsy (sensory auras)'],
   },
   {
     id: 'angular-gyrus',
@@ -91,6 +111,10 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [-0.7, 0.5, -0.4],
     color: '#9B59B6',
+    brodmannAreas: [39],
+    bloodSupply: 'Middle cerebral artery (posterior division)',
+    clinicalSignificance: "Left-sided damage causes Gerstmann's syndrome: agraphia, acalculia, finger agnosia, and left-right confusion. Also causes alexia with agraphia.",
+    pathologies: ["Gerstmann's syndrome", 'Alexia with agraphia', 'Semantic dementia', 'Angular gyrus syndrome'],
   },
   {
     id: 'supramarginal-gyrus',
@@ -106,6 +130,10 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [-0.75, 0.45, -0.2],
     color: '#8E44AD',
+    brodmannAreas: [40],
+    bloodSupply: 'Middle cerebral artery (posterior division)',
+    clinicalSignificance: 'Left-sided damage contributes to conduction aphasia (impaired repetition with intact comprehension and fluency). Right-sided damage causes hemispatial neglect.',
+    pathologies: ['Conduction aphasia', 'Hemispatial neglect (right-sided lesion)', 'Ideomotor apraxia'],
   },
   {
     id: 'precuneus',
@@ -122,6 +150,10 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [0, 0.6, -0.5],
     color: '#1ABC9C',
+    brodmannAreas: [7, 31],
+    bloodSupply: 'Anterior cerebral artery (pericallosal branches)',
+    clinicalSignificance: 'Among the first regions to show reduced metabolism in early Alzheimer\'s disease. Hypometabolism here is a biomarker for AD. Also implicated in disorders of consciousness.',
+    pathologies: ["Alzheimer's disease (early hypometabolism)", 'Disorders of consciousness', 'Posterior cortical atrophy'],
   },
 
   // === TEMPORAL LOBE ===
@@ -139,6 +171,10 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [-0.7, 0.1, -0.3],
     color: '#E67E22',
+    brodmannAreas: [22],
+    bloodSupply: 'Middle cerebral artery (inferior division)',
+    clinicalSignificance: "Damage causes Wernicke's aphasia: fluent but nonsensical speech (word salad) with severely impaired comprehension. Patients are often unaware of their deficit (anosognosia).",
+    pathologies: ["Wernicke's aphasia (stroke)", 'Temporal lobe epilepsy', 'Herpes simplex encephalitis'],
   },
   {
     id: 'auditory-cortex',
@@ -154,6 +190,10 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [-0.8, 0.0, 0.0],
     color: '#D35400',
+    brodmannAreas: [41, 42],
+    bloodSupply: 'Middle cerebral artery (inferior division)',
+    clinicalSignificance: 'Bilateral damage causes cortical deafness. Unilateral lesions cause subtle deficits in sound localization and auditory discrimination rather than complete hearing loss.',
+    pathologies: ['Cortical deafness (bilateral)', 'Auditory agnosia', 'Temporal lobe epilepsy (auditory auras)'],
   },
   {
     id: 'fusiform-gyrus',
@@ -169,6 +209,10 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [-0.5, -0.4, -0.2],
     color: '#C0392B',
+    brodmannAreas: [37],
+    bloodSupply: 'Posterior cerebral artery',
+    clinicalSignificance: 'Damage causes prosopagnosia (face blindness) -- inability to recognize familiar faces despite intact visual acuity. Can be acquired or developmental.',
+    pathologies: ['Prosopagnosia (face blindness)', 'Alexia (pure word blindness)', 'Achromatopsia (color blindness)'],
   },
   {
     id: 'entorhinal-cortex',
@@ -184,6 +228,10 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [-0.35, -0.3, 0.3],
     color: '#16A085',
+    brodmannAreas: [28, 34],
+    bloodSupply: 'Posterior cerebral artery (anterior temporal branch)',
+    clinicalSignificance: "Among the very first regions to show neurofibrillary tangles in Alzheimer's disease (Braak stage I-II). Grid cell dysfunction here may explain early spatial disorientation in AD patients.",
+    pathologies: ["Alzheimer's disease (earliest pathology)", 'Temporal lobe epilepsy', 'Semantic dementia'],
   },
   {
     id: 'parahippocampal-gyrus',
@@ -199,6 +247,10 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [-0.3, -0.35, -0.1],
     color: '#27AE60',
+    brodmannAreas: [27, 28, 35, 36],
+    bloodSupply: 'Posterior cerebral artery',
+    clinicalSignificance: 'Damage causes topographical disorientation and difficulty encoding new spatial memories. Lesions here often occur with hippocampal damage in medial temporal lobe epilepsy surgery.',
+    pathologies: ['Topographical disorientation', 'Temporal lobe epilepsy', "Alzheimer's disease"],
   },
   {
     id: 'insula',
@@ -216,6 +268,10 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [-0.5, 0.1, 0.2],
     color: '#E91E63',
+    brodmannAreas: [13, 14, 15, 16],
+    bloodSupply: 'Middle cerebral artery (insular segment, M2)',
+    clinicalSignificance: 'Insular strokes cause gustatory deficits, autonomic dysregulation, and loss of interoceptive awareness. Right insular damage linked to anosognosia. Implicated in addiction -- damage can abolish nicotine cravings.',
+    pathologies: ['Insular stroke (autonomic instability)', 'Addiction (craving cessation after damage)', 'Frontotemporal dementia (social-emotional variant)'],
   },
 
   // === OCCIPITAL LOBE ===
@@ -234,6 +290,10 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [0, 0.2, -0.95],
     color: '#3498DB',
+    brodmannAreas: [17],
+    bloodSupply: 'Posterior cerebral artery (calcarine branch)',
+    clinicalSignificance: 'Damage causes contralateral homonymous hemianopia (loss of half the visual field). Bilateral damage causes cortical blindness, sometimes with Anton syndrome (denial of blindness).',
+    pathologies: ['Cortical blindness', 'Homonymous hemianopia', 'Anton syndrome', 'Charles Bonnet syndrome (visual hallucinations)'],
   },
   {
     id: 'cuneus',
@@ -248,6 +308,10 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [0, 0.5, -0.85],
     color: '#2980B9',
+    brodmannAreas: [17, 18],
+    bloodSupply: 'Posterior cerebral artery',
+    clinicalSignificance: 'Lesions cause contralateral inferior quadrantanopia (loss of lower quarter of the visual field on the opposite side). Often affected in PCA strokes.',
+    pathologies: ['Inferior quadrantanopia', 'Posterior cerebral artery stroke', 'Visual auras in migraine'],
   },
   {
     id: 'lingual-gyrus',
@@ -263,6 +327,10 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [0, -0.1, -0.9],
     color: '#5DADE2',
+    brodmannAreas: [18, 19],
+    bloodSupply: 'Posterior cerebral artery',
+    clinicalSignificance: 'Damage causes contralateral superior quadrantanopia. Bilateral damage to the lingual and fusiform gyri causes achromatopsia (acquired color blindness) or prosopagnosia.',
+    pathologies: ['Superior quadrantanopia', 'Achromatopsia (acquired)', 'Visual agnosia', 'Posterior cortical atrophy'],
   },
 
   // === SUBCORTICAL STRUCTURES ===
@@ -281,6 +349,9 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [-0.35, -0.15, 0.1],
     color: '#F1C40F',
+    bloodSupply: 'Posterior cerebral artery (hippocampal branches), Anterior choroidal artery',
+    clinicalSignificance: "Bilateral damage causes profound anterograde amnesia (inability to form new memories), as in patient H.M. Among the first structures affected in Alzheimer's disease. Hippocampal sclerosis is the hallmark of temporal lobe epilepsy.",
+    pathologies: ["Alzheimer's disease", 'Temporal lobe epilepsy (hippocampal sclerosis)', 'Anterograde amnesia', 'Transient global amnesia', 'Hypoxic-ischemic injury'],
   },
   {
     id: 'amygdala',
@@ -298,6 +369,9 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [-0.4, -0.2, 0.35],
     color: '#E74C3C',
+    bloodSupply: 'Anterior choroidal artery, Middle cerebral artery (temporal branches)',
+    clinicalSignificance: "Bilateral damage causes Kluver-Bucy syndrome: emotional flattening, hyperorality, visual agnosia, and hypersexuality. Unilateral damage impairs fear conditioning. Amygdala hyperactivity is implicated in PTSD and anxiety disorders.",
+    pathologies: ['Kluver-Bucy syndrome', 'PTSD (hyperactivation)', 'Anxiety disorders', 'Temporal lobe epilepsy', 'Urbach-Wiethe disease (calcification)'],
   },
   {
     id: 'thalamus',
@@ -315,6 +389,9 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [0, 0.1, 0.0],
     color: '#9B59B6',
+    bloodSupply: 'Posterior cerebral artery (thalamoperforating and thalamogeniculate branches), Posterior communicating artery',
+    clinicalSignificance: 'Thalamic strokes cause contralateral sensory loss and thalamic pain syndrome (Dejerine-Roussy). Bilateral thalamic lesions can cause coma or severe cognitive impairment. Fatal familial insomnia targets the thalamus.',
+    pathologies: ['Thalamic stroke (Dejerine-Roussy syndrome)', 'Fatal familial insomnia', 'Thalamic tumors', 'Wernicke-Korsakoff syndrome (mammillothalamic tract)'],
   },
   {
     id: 'hypothalamus',
@@ -332,6 +409,9 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [0, -0.15, 0.2],
     color: '#E67E22',
+    bloodSupply: 'Circle of Willis perforating branches, Superior hypophyseal artery, Anterior cerebral artery',
+    clinicalSignificance: 'Damage causes diabetes insipidus (loss of ADH), temperature dysregulation, and disrupted hunger/satiety. Hypothalamic tumors (craniopharyngioma) in children cause hormonal deficiencies and visual field defects.',
+    pathologies: ['Diabetes insipidus', 'Craniopharyngioma', 'Hypothalamic obesity', 'Kallmann syndrome', 'Prader-Willi syndrome'],
   },
   {
     id: 'caudate-nucleus',
@@ -348,6 +428,9 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [-0.15, 0.25, 0.15],
     color: '#2ECC71',
+    bloodSupply: 'Lenticulostriate arteries (branches of middle cerebral artery), Anterior cerebral artery (Heubner)',
+    clinicalSignificance: "Caudate atrophy is the radiological hallmark of Huntington's disease, visible on CT/MRI as enlarged frontal horns of the lateral ventricles. Caudate lesions can cause abulia (lack of will/motivation).",
+    pathologies: ["Huntington's disease (caudate atrophy)", 'OCD (caudate hyperactivity)', 'Chorea', 'Abulia'],
   },
   {
     id: 'putamen',
@@ -363,6 +446,9 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [-0.25, 0.1, 0.15],
     color: '#27AE60',
+    bloodSupply: 'Lenticulostriate arteries (lateral branches of middle cerebral artery)',
+    clinicalSignificance: 'The most common site of hypertensive intracerebral hemorrhage. Putaminal hemorrhage causes contralateral hemiparesis, hemisensory loss, and homonymous hemianopia.',
+    pathologies: ['Hypertensive hemorrhage (most common site)', "Parkinson's disease", "Huntington's disease", 'Wilson disease (copper deposition)'],
   },
   {
     id: 'globus-pallidus',
@@ -378,6 +464,9 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [-0.18, 0.05, 0.1],
     color: '#1ABC9C',
+    bloodSupply: 'Anterior choroidal artery, Lenticulostriate arteries',
+    clinicalSignificance: 'Target for deep brain stimulation (DBS) in dystonia and Parkinson\'s disease. Carbon monoxide poisoning characteristically causes bilateral pallidal necrosis.',
+    pathologies: ['Carbon monoxide poisoning (bilateral necrosis)', 'Dystonia (DBS target)', "Parkinson's disease (DBS target)", 'Kernicterus (bilirubin toxicity)'],
   },
   {
     id: 'nucleus-accumbens',
@@ -394,6 +483,9 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [-0.12, -0.05, 0.3],
     color: '#F39C12',
+    bloodSupply: 'Recurrent artery of Heubner (branch of anterior cerebral artery)',
+    clinicalSignificance: 'Central to the neurobiology of addiction. All drugs of abuse increase dopamine release here. Deep brain stimulation of the nucleus accumbens is being investigated for treatment-resistant depression and OCD.',
+    pathologies: ['Substance use disorders (all classes)', 'Behavioral addictions', 'Anhedonia in depression', 'OCD (DBS target)'],
   },
   {
     id: 'cingulate-cortex',
@@ -411,6 +503,10 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [0, 0.4, 0.15],
     color: '#D35400',
+    brodmannAreas: [23, 24, 25, 31, 32, 33],
+    bloodSupply: 'Anterior cerebral artery (pericallosal and callosomarginal branches)',
+    clinicalSignificance: 'ACC cingulotomy was used for intractable pain and OCD. Subgenual cingulate (BA25) hyperactivity is implicated in treatment-resistant depression and is a DBS target. PCC hypometabolism is an early sign of Alzheimer\'s disease.',
+    pathologies: ['Treatment-resistant depression (BA25)', "Alzheimer's disease (PCC)", 'OCD', 'Chronic pain syndromes', 'Akinetic mutism (bilateral ACC lesions)'],
   },
   {
     id: 'corpus-callosum',
@@ -426,6 +522,9 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [0, 0.3, 0.0],
     color: '#BDC3C7',
+    bloodSupply: 'Anterior cerebral artery (pericallosal artery)',
+    clinicalSignificance: 'Callosotomy (surgical severing) produces split-brain syndrome: each hemisphere operates independently. Callosal lesions cause alien hand syndrome, interhemispheric disconnection, and left-hand anomia.',
+    pathologies: ['Split-brain syndrome (callosotomy)', 'Multiple sclerosis (Dawson fingers)', 'Agenesis of the corpus callosum', 'Marchiafava-Bignami disease (alcoholism)', 'Alien hand syndrome'],
   },
 
   // === BRAINSTEM ===
@@ -443,6 +542,9 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [0, -0.4, -0.1],
     color: '#34495E',
+    bloodSupply: 'Posterior cerebral artery (peduncular perforating branches), Superior cerebellar artery',
+    clinicalSignificance: "Loss of dopaminergic neurons in the pars compacta is THE defining pathology of Parkinson's disease. Symptoms appear after ~60-80% of neurons are lost. Neuromelanin pigment gives it the dark color visible on MRI.",
+    pathologies: ["Parkinson's disease (primary pathology)", 'Progressive supranuclear palsy', 'Multiple system atrophy', 'Drug-induced parkinsonism'],
   },
   {
     id: 'ventral-tegmental-area',
@@ -458,6 +560,9 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [0, -0.45, 0.0],
     color: '#2C3E50',
+    bloodSupply: 'Posterior cerebral artery (perforating branches), Superior cerebellar artery',
+    clinicalSignificance: 'Origin of the mesolimbic and mesocortical dopamine pathways. Dysregulation causes positive symptoms of schizophrenia (mesolimbic hyperactivity) and negative symptoms (mesocortical hypoactivity). Central to addiction neurobiology.',
+    pathologies: ['Schizophrenia (dopamine hypothesis)', 'Substance use disorders', 'Depression (anhedonia)', 'ADHD'],
   },
   {
     id: 'red-nucleus',
@@ -473,6 +578,9 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [0, -0.35, -0.05],
     color: '#922B21',
+    bloodSupply: 'Posterior cerebral artery (perforating branches), Superior cerebellar artery',
+    clinicalSignificance: 'Lesions cause Claude syndrome (ipsilateral CN III palsy + contralateral ataxia) or Benedikt syndrome (CN III palsy + contralateral tremor). Iron content makes it visible on MRI.',
+    pathologies: ['Claude syndrome', 'Benedikt syndrome', 'Rubral tremor (Holmes tremor)', 'Midbrain stroke'],
   },
   {
     id: 'superior-colliculus',
@@ -488,6 +596,9 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [0, -0.25, -0.35],
     color: '#7D3C98',
+    bloodSupply: 'Posterior cerebral artery (quadrigeminal branches), Superior cerebellar artery',
+    clinicalSignificance: "Lesions cause Parinaud's syndrome: paralysis of upward gaze, convergence-retraction nystagmus, and light-near dissociation of pupils. Often caused by pinealoma compressing the tectal plate.",
+    pathologies: ["Parinaud's syndrome (dorsal midbrain syndrome)", 'Pinealoma compression', 'Hydrocephalus (aqueductal stenosis)'],
   },
   {
     id: 'inferior-colliculus',
@@ -503,6 +614,9 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [0, -0.3, -0.4],
     color: '#6C3483',
+    bloodSupply: 'Superior cerebellar artery, Posterior cerebral artery',
+    clinicalSignificance: 'Lesions cause impaired sound localization and auditory processing but not deafness (peripheral pathway intact). Bilateral damage causes central auditory processing disorder.',
+    pathologies: ['Central auditory processing disorder', 'Midbrain stroke', 'Acoustic neuroma (indirect compression)'],
   },
   {
     id: 'pons',
@@ -519,6 +633,9 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [0, -0.55, -0.15],
     color: '#5B2C6F',
+    bloodSupply: 'Basilar artery (pontine branches), Anterior inferior cerebellar artery (AICA)',
+    clinicalSignificance: 'Central pontine myelinolysis results from overly rapid sodium correction. Locked-in syndrome results from ventral pontine infarction (basilar artery occlusion): patient is conscious but can only communicate via vertical eye movements.',
+    pathologies: ['Locked-in syndrome (basilar artery occlusion)', 'Central pontine myelinolysis', 'Pontine glioma', 'Trigeminal neuralgia (CN V compression)'],
   },
   {
     id: 'medulla',
@@ -535,6 +652,9 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [0, -0.7, -0.15],
     color: '#4A235A',
+    bloodSupply: 'Vertebral arteries, Posterior inferior cerebellar artery (PICA), Anterior spinal artery',
+    clinicalSignificance: 'Lateral medullary (Wallenberg) syndrome from PICA occlusion causes: ipsilateral facial pain/temperature loss, Horner syndrome, cerebellar ataxia, and contralateral body pain/temperature loss. Medullary lesions can be fatal if respiratory centers are affected.',
+    pathologies: ['Wallenberg syndrome (lateral medullary)', 'Medial medullary syndrome', 'Syringobulbia', 'Arnold-Chiari malformation'],
   },
   {
     id: 'pineal-gland',
@@ -550,6 +670,9 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [0, -0.1, -0.3],
     color: '#AF7AC5',
+    bloodSupply: 'Posterior choroidal arteries (branches of posterior cerebral artery)',
+    clinicalSignificance: "Pineal tumors (germinoma, pineoblastoma) compress the tectal plate causing Parinaud's syndrome. Pineal calcification is normal in adults and visible on X-ray. The pineal gland is outside the blood-brain barrier.",
+    pathologies: ['Pinealoma (germinoma)', 'Pineoblastoma', "Parinaud's syndrome (compression)", 'Precocious puberty (in children with pineal tumors)'],
   },
 
   // === CEREBELLUM ===
@@ -569,6 +692,9 @@ export const BRAIN_REGIONS: BrainRegion[] = [
     ],
     position: [0, -0.55, -0.5],
     color: '#D4AC0D',
+    bloodSupply: 'Superior cerebellar artery (SCA), Anterior inferior cerebellar artery (AICA), Posterior inferior cerebellar artery (PICA)',
+    clinicalSignificance: 'Cerebellar lesions cause ipsilateral ataxia, intention tremor, dysmetria, dysdiadochokinesia, and scanning speech. Cerebellar tonsillar herniation through the foramen magnum is rapidly fatal (compresses medulla).',
+    pathologies: ['Cerebellar stroke (SCA/PICA/AICA)', 'Medulloblastoma (most common pediatric brain tumor)', 'Spinocerebellar ataxia', 'Cerebellar tonsillar herniation', 'Alcoholic cerebellar degeneration'],
   },
 ]
 

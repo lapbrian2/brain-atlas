@@ -22,6 +22,8 @@ interface TractData {
   curve: THREE.CatmullRomCurve3
   radius: number
   color: string
+  fromColor: string
+  toColor: string
   key: string
   index: number
 }
@@ -47,6 +49,8 @@ function buildTracts(): TractData[] {
       curve,
       radius,
       color,
+      fromColor: fromRegion.color,
+      toColor: toRegion.color,
       key: `${conn.from}-${conn.to}`,
       index,
     })
@@ -55,22 +59,45 @@ function buildTracts(): TractData[] {
   return tracts
 }
 
-function TractMesh({ curve, radius, color, index }: TractData) {
+function TractMesh({ curve, radius, fromColor, toColor, index }: TractData) {
   const meshRef = useRef<THREE.Mesh>(null)
 
-  const geometry = useMemo(
-    () => new THREE.TubeGeometry(curve, TUBE_SEGMENTS, radius, RADIAL_SEGMENTS, false),
-    [curve, radius],
-  )
+  const geometry = useMemo(() => {
+    const geo = new THREE.TubeGeometry(curve, TUBE_SEGMENTS, radius, RADIAL_SEGMENTS, false)
+
+    // Apply vertex colors — gradient from source to target region color
+    const count = geo.attributes.position.count
+    const colors = new Float32Array(count * 3)
+    const cFrom = new THREE.Color(fromColor)
+    const cTo = new THREE.Color(toColor)
+    const tmpColor = new THREE.Color()
+
+    // TubeGeometry lays out vertices in rings along the curve.
+    // Each ring has (RADIAL_SEGMENTS + 1) vertices. We interpolate color per ring.
+    const ringSize = RADIAL_SEGMENTS + 1
+    const numRings = Math.floor(count / ringSize)
+
+    for (let i = 0; i < count; i++) {
+      const ring = Math.floor(i / ringSize)
+      const t = numRings > 1 ? ring / (numRings - 1) : 0
+      tmpColor.copy(cFrom).lerp(cTo, t)
+      colors[i * 3] = tmpColor.r
+      colors[i * 3 + 1] = tmpColor.g
+      colors[i * 3 + 2] = tmpColor.b
+    }
+
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+    return geo
+  }, [curve, radius, fromColor, toColor])
 
   const material = useMemo(
     () =>
       new THREE.MeshBasicMaterial({
-        color,
+        vertexColors: true,
         transparent: true,
         opacity: 0.6,
       }),
-    [color],
+    [],
   )
 
   // Pulsing opacity — different tracts pulse at different rates
@@ -94,7 +121,15 @@ export default function Tracts() {
   return (
     <group>
       {tracts.map((t) => (
-        <TractMesh key={t.key} curve={t.curve} radius={t.radius} color={t.color} index={t.index} />
+        <TractMesh
+          key={t.key}
+          curve={t.curve}
+          radius={t.radius}
+          color={t.color}
+          fromColor={t.fromColor}
+          toColor={t.toColor}
+          index={t.index}
+        />
       ))}
     </group>
   )

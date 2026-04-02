@@ -167,38 +167,121 @@ function buildVesselPaths(): VesselPath[] {
   return vessels
 }
 
+/**
+ * Generate surface vasculature — thin pial arteries and veins that run along
+ * the cortical surface. These are the vessels visible on a real brain specimen.
+ * Uses seeded random to produce consistent curves that follow the brain surface.
+ */
+function buildSurfaceVessels(): VesselPath[] {
+  const vessels: VesselPath[] = []
+  const r = 0.002 // thinner than deep vessels
+
+  // Simple seeded random
+  let seed = 7919
+  function seededRandom(): number {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff
+    return seed / 0x7fffffff
+  }
+
+  // Brain surface approximation: points on an ellipsoid
+  // roughly matching cortex bounds (0.7 wide, 0.5 tall, 0.8 deep)
+  function surfacePoint(theta: number, phi: number): [number, number, number] {
+    const rx = 0.72, ry = 0.55, rz = 0.68
+    return [
+      rx * Math.sin(phi) * Math.cos(theta),
+      ry * Math.cos(phi) + 0.15, // offset to brain center
+      rz * Math.sin(phi) * Math.sin(theta),
+    ]
+  }
+
+  // Generate ~30 surface vessel curves
+  for (let i = 0; i < 30; i++) {
+    const isArtery = i < 18 // 18 arteries, 12 veins
+    const theta0 = seededRandom() * Math.PI * 2
+    const phi0 = 0.3 + seededRandom() * 1.6 // avoid poles
+    const steps = 4 + Math.floor(seededRandom() * 3)
+    const points: [number, number, number][] = []
+
+    let theta = theta0
+    let phi = phi0
+
+    for (let s = 0; s <= steps; s++) {
+      const p = surfacePoint(theta, phi)
+      // Add small random perturbation for organic look
+      points.push([
+        p[0] + (seededRandom() - 0.5) * 0.04,
+        p[1] + (seededRandom() - 0.5) * 0.03,
+        p[2] + (seededRandom() - 0.5) * 0.04,
+      ])
+      // Random walk along surface
+      theta += (seededRandom() - 0.4) * 0.4
+      phi += (seededRandom() - 0.5) * 0.25
+      phi = Math.max(0.2, Math.min(2.8, phi))
+    }
+
+    vessels.push({
+      key: `pial-${isArtery ? 'artery' : 'vein'}-${i}`,
+      radius: r * (0.8 + seededRandom() * 0.6),
+      points,
+    })
+  }
+
+  return vessels
+}
+
+/** Color type for vessel rendering */
+type VesselType = 'deep' | 'artery' | 'vein'
+
+function getVesselColor(key: string): { color: string; emissive: string } {
+  if (key.includes('artery')) return { color: '#660000', emissive: '#880000' }
+  if (key.includes('vein')) return { color: '#330044', emissive: '#440066' }
+  return { color: '#8B0000', emissive: '#FF0000' }
+}
+
+function getVesselType(key: string): VesselType {
+  if (key.includes('artery')) return 'artery'
+  if (key.includes('vein')) return 'vein'
+  return 'deep'
+}
+
 function VesselTube({ path }: { path: VesselPath }) {
+  const vesselType = getVesselType(path.key)
+  const colors = getVesselColor(path.key)
+
   const { geometry, material } = useMemo(() => {
     const pts = path.points.map((p) => new THREE.Vector3(...p))
     const curve = new THREE.CatmullRomCurve3(pts)
-    const geo = new THREE.TubeGeometry(curve, 24, path.radius, 6, false)
-    // Standard material with subtle emissive tint
+    const segments = vesselType === 'deep' ? 24 : 16
+    const geo = new THREE.TubeGeometry(curve, segments, path.radius, 6, false)
     const matPhys = new THREE.MeshStandardMaterial({
-      color: '#8B0000',
-      emissive: '#FF0000',
-      emissiveIntensity: 0.1,
+      color: colors.color,
+      emissive: colors.emissive,
+      emissiveIntensity: vesselType === 'deep' ? 0.1 : 0.05,
       transparent: true,
-      opacity: 0.3,
+      opacity: vesselType === 'deep' ? 0.3 : 0.45,
       depthWrite: false,
       roughness: 0.7,
       metalness: 0.0,
     })
-    // Return the standard material for emissive support
     return { geometry: geo, material: matPhys }
-  }, [path])
+  }, [path, vesselType, colors])
 
   return <mesh geometry={geometry} material={material} />
 }
 
 export default function BloodVessels() {
   const vesselsActive = useBrainStore((s) => s.activeLayers.has('vessels'))
-  const vesselPaths = useMemo(() => buildVesselPaths(), [])
+  const deepVessels = useMemo(() => buildVesselPaths(), [])
+  const surfaceVessels = useMemo(() => buildSurfaceVessels(), [])
 
   if (!vesselsActive) return null
 
   return (
     <group>
-      {vesselPaths.map((path) => (
+      {deepVessels.map((path) => (
+        <VesselTube key={path.key} path={path} />
+      ))}
+      {surfaceVessels.map((path) => (
         <VesselTube key={path.key} path={path} />
       ))}
     </group>

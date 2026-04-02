@@ -37,12 +37,34 @@ export default function RegionPanel() {
             {region.lobe}
           </div>
           <h2 className="region-panel__name">{region.name}</h2>
-          <p className="region-panel__desc">{region.description.slice(0, 180)}...</p>
+          <p className="region-panel__desc">{region.description}</p>
+
+          {region.brodmannAreas && region.brodmannAreas.length > 0 && (
+            <>
+              <h3 className="region-panel__heading">Brodmann Areas</h3>
+              <p className="region-panel__detail">
+                {region.brodmannAreas.map((ba) => `BA ${ba}`).join(', ')}
+              </p>
+            </>
+          )}
+
+          <h3 className="region-panel__heading">Blood Supply</h3>
+          <p className="region-panel__detail">{region.bloodSupply}</p>
 
           <h3 className="region-panel__heading">Functions</h3>
           <div className="region-panel__tags">
             {region.functions.map((fn) => (
               <span key={fn} className="region-panel__tag">{fn}</span>
+            ))}
+          </div>
+
+          <h3 className="region-panel__heading">Clinical Significance</h3>
+          <p className="region-panel__detail">{region.clinicalSignificance}</p>
+
+          <h3 className="region-panel__heading">Associated Pathologies</h3>
+          <div className="region-panel__tags">
+            {region.pathologies.map((p) => (
+              <span key={p} className="region-panel__tag region-panel__tag--pathology">{p}</span>
             ))}
           </div>
 

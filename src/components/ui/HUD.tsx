@@ -2,6 +2,7 @@ import ViewControls from './ViewControls'
 import SearchBar from './SearchBar'
 import RegionPanel from './RegionPanel'
 import TaskSelector from './TaskSelector'
+import LegendPanel from './LegendPanel'
 
 export default function HUD() {
   return (
@@ -10,6 +11,7 @@ export default function HUD() {
       <ViewControls />
       <TaskSelector />
       <RegionPanel />
+      <LegendPanel />
     </>
   )
 }
