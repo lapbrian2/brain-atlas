@@ -1,10 +1,12 @@
 import { Html } from '@react-three/drei'
 import { BRAIN_REGIONS, REGION_MAP } from '../../data/regions'
 import { useBrainStore } from '../../store/useBrainStore'
+import { getSurfacePosition } from './BrainModel'
 
 /**
  * Hover-only tooltip label positioned at the region node.
  * Teal/cyan text with dark backing for the holographic HUD look.
+ * Uses surface-projected positions when available, falls back to raw positions.
  */
 export default function RegionLabels() {
   const hoveredRegion = useBrainStore((s) => s.hoveredRegion)
@@ -16,28 +18,35 @@ export default function RegionLabels() {
   if (viewMode === 'quiz') {
     return (
       <group>
-        {BRAIN_REGIONS.map((r) => (
-          <Html
-            key={r.id}
-            position={[r.position[0], r.position[1] + 0.08, r.position[2]]}
-            center
-            distanceFactor={5}
-            zIndexRange={[10, 0]}
-          >
-            <div
-              style={{
-                color: 'rgba(0, 170, 204, 0.5)',
-                fontSize: '11px',
-                fontFamily: "'IBM Plex Mono', monospace",
-                fontWeight: 500,
-                pointerEvents: 'none',
-                userSelect: 'none',
-              }}
+        {BRAIN_REGIONS.map((r) => {
+          const surfPos = getSurfacePosition(r.id)
+          const pos: [number, number, number] = surfPos
+            ? [surfPos.x, surfPos.y + 0.08, surfPos.z]
+            : [r.position[0], r.position[1] + 0.08, r.position[2]]
+
+          return (
+            <Html
+              key={r.id}
+              position={pos}
+              center
+              distanceFactor={5}
+              zIndexRange={[10, 0]}
             >
-              ?
-            </div>
-          </Html>
-        ))}
+              <div
+                style={{
+                  color: 'rgba(0, 170, 204, 0.5)',
+                  fontSize: '11px',
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontWeight: 500,
+                  pointerEvents: 'none',
+                  userSelect: 'none',
+                }}
+              >
+                ?
+              </div>
+            </Html>
+          )
+        })}
       </group>
     )
   }
@@ -45,9 +54,14 @@ export default function RegionLabels() {
   // Explorer/other modes: show label only on hover
   if (!region) return null
 
+  const surfPos = getSurfacePosition(region.id)
+  const labelPos: [number, number, number] = surfPos
+    ? [surfPos.x, surfPos.y + 0.1, surfPos.z]
+    : [region.position[0], region.position[1] + 0.1, region.position[2]]
+
   return (
     <Html
-      position={[region.position[0], region.position[1] + 0.1, region.position[2]]}
+      position={labelPos}
       center
       distanceFactor={5}
       zIndexRange={[10, 0]}
