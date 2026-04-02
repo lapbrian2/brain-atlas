@@ -22,8 +22,8 @@ function App() {
           shadows
           camera={{ fov: 45, near: 0.1, far: 100, position: [0, 0.5, 3.5] }}
         >
-          <color attach="background" args={['#050510']} />
-          <fog attach="fog" args={['#050510', 5, 18]} />
+          <color attach="background" args={['#030308']} />
+          <fog attach="fog" args={['#030308', 6, 20]} />
 
           <Suspense fallback={null}>
             <BrainScene />

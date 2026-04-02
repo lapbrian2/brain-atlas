@@ -1,13 +1,10 @@
-import { useMemo } from 'react'
 import { Html } from '@react-three/drei'
-import { REGION_MAP } from '../../data/regions'
+import { BRAIN_REGIONS, REGION_MAP } from '../../data/regions'
 import { useBrainStore } from '../../store/useBrainStore'
-import { ANATOMICAL_REGIONS, DATA_REGION_TO_MESH } from './BrainModel'
 
 /**
- * Hover-only tooltip label.
- * Shows a single label at the hovered region's centroid.
- * No leader lines, no clutter.
+ * Hover-only tooltip label positioned at the region node.
+ * Clean, minimal text — no leader lines.
  */
 export default function RegionLabels() {
   const hoveredRegion = useBrainStore((s) => s.hoveredRegion)
@@ -15,25 +12,14 @@ export default function RegionLabels() {
 
   const region = hoveredRegion ? REGION_MAP.get(hoveredRegion) : null
 
-  // Find the anatomical mesh position for this region
-  const meshPosition = useMemo((): [number, number, number] | null => {
-    if (!hoveredRegion) return null
-    const meshId = DATA_REGION_TO_MESH.get(hoveredRegion)
-    if (!meshId) return null
-    const anat = ANATOMICAL_REGIONS.find(a => a.id === meshId)
-    if (!anat) return null
-    // Position label slightly above the mesh
-    return [anat.position[0], anat.position[1] + anat.scale[1] + 0.08, anat.position[2]]
-  }, [hoveredRegion])
-
-  // Quiz mode: show "?" icons at each region center
+  // Quiz mode: show "?" at each region position
   if (viewMode === 'quiz') {
     return (
       <group>
-        {ANATOMICAL_REGIONS.filter(a => a.regionIds.length > 0).map((anat) => (
+        {BRAIN_REGIONS.map((r) => (
           <Html
-            key={anat.id}
-            position={[anat.position[0], anat.position[1] + anat.scale[1] * 0.5, anat.position[2]]}
+            key={r.id}
+            position={[r.position[0], r.position[1] + 0.08, r.position[2]]}
             center
             distanceFactor={5}
             zIndexRange={[10, 0]}
@@ -57,18 +43,18 @@ export default function RegionLabels() {
   }
 
   // Explorer/other modes: show label only on hover
-  if (!region || !meshPosition) return null
+  if (!region) return null
 
   return (
     <Html
-      position={meshPosition}
+      position={[region.position[0], region.position[1] + 0.1, region.position[2]]}
       center
       distanceFactor={5}
       zIndexRange={[10, 0]}
     >
       <div
         style={{
-          color: 'rgba(255,255,255,0.85)',
+          color: 'rgba(255,255,255,0.9)',
           fontSize: '11px',
           fontFamily: "'IBM Plex Mono', monospace",
           fontWeight: 400,
@@ -77,7 +63,10 @@ export default function RegionLabels() {
           whiteSpace: 'nowrap',
           pointerEvents: 'none',
           userSelect: 'none',
-          textShadow: '0 1px 4px rgba(0,0,0,0.8)',
+          textShadow: '0 1px 6px rgba(0,0,0,0.9)',
+          background: 'rgba(0,0,0,0.4)',
+          padding: '2px 8px',
+          backdropFilter: 'blur(4px)',
         }}
       >
         {region.name}

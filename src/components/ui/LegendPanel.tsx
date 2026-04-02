@@ -2,13 +2,13 @@ import { useState } from 'react'
 import { useBrainStore } from '../../store/useBrainStore'
 
 const LOBE_COLORS: { label: string; color: string }[] = [
-  { label: 'Frontal', color: '#4A90D9' },
-  { label: 'Parietal', color: '#2ECC71' },
-  { label: 'Temporal', color: '#E67E22' },
-  { label: 'Occipital', color: '#3498DB' },
-  { label: 'Subcortical', color: '#9B59B6' },
-  { label: 'Cerebellum', color: '#D4AC0D' },
-  { label: 'Brainstem', color: '#34495E' },
+  { label: 'Frontal', color: '#4488FF' },
+  { label: 'Parietal', color: '#00CC88' },
+  { label: 'Temporal', color: '#FFaa33' },
+  { label: 'Occipital', color: '#FF44AA' },
+  { label: 'Subcortical', color: '#00DDFF' },
+  { label: 'Cerebellum', color: '#AA66FF' },
+  { label: 'Brainstem', color: '#FFFFFF' },
 ]
 
 const TRACT_COLORS: { label: string; color: string }[] = [

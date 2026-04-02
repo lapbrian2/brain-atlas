@@ -10,18 +10,16 @@ import {
 import { ToneMappingMode, BlendFunction, Effect } from 'postprocessing'
 import { Vector2, Uniform } from 'three'
 
-const chromaticOffset = new Vector2(0.002, 0.002)
+const chromaticOffset = new Vector2(0.0015, 0.0015)
 
 /**
- * Custom film grain effect for medical monitor / tech aesthetic.
- * Subtle noise overlay that shifts each frame.
+ * Custom film grain effect for tech/holographic aesthetic.
  */
 class FilmGrainEffect extends Effect {
   constructor() {
     super('FilmGrainEffect', /* glsl */ `
       uniform float time;
 
-      // Simple hash for grain
       float grainHash(vec2 p) {
         vec3 p3 = fract(vec3(p.xyx) * 0.1031);
         p3 += dot(p3, p3.yzx + 33.33);
@@ -30,7 +28,7 @@ class FilmGrainEffect extends Effect {
 
       void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
         float grain = grainHash(uv * 500.0 + time * 100.0) - 0.5;
-        outputColor = inputColor + vec4(vec3(grain * 0.04), 0.0);
+        outputColor = inputColor + vec4(vec3(grain * 0.03), 0.0);
       }
     `, {
       uniforms: new Map([
@@ -49,7 +47,6 @@ class FilmGrainEffect extends Effect {
 
 function FilmGrain() {
   const effectRef = useRef<FilmGrainEffect>(null)
-
   const effect = useRef(new FilmGrainEffect()).current
 
   useFrame((_, delta) => {
@@ -63,9 +60,9 @@ export default function PostProcessing() {
   return (
     <EffectComposer>
       <Bloom
-        intensity={0.5}
-        luminanceThreshold={0.7}
-        luminanceSmoothing={0.3}
+        intensity={0.7}
+        luminanceThreshold={0.4}
+        luminanceSmoothing={0.4}
         mipmapBlur
       />
       <ChromaticAberration
@@ -74,7 +71,7 @@ export default function PostProcessing() {
         modulationOffset={0.5}
         blendFunction={BlendFunction.NORMAL}
       />
-      <Vignette offset={0.2} darkness={0.85} />
+      <Vignette offset={0.2} darkness={0.9} />
       <FilmGrain />
       <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
     </EffectComposer>
