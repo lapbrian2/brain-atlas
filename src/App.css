@@ -7,9 +7,9 @@
 body {
   margin: 0;
   overflow: hidden;
-  background: #030308;
+  background: #020208;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  color: white;
+  color: #88CCDD;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -21,7 +21,7 @@ body {
 }
 
 /* ============================================================
-   Title — subtle, nearly invisible
+   Title — teal, nearly invisible
    ============================================================ */
 .title-block {
   position: absolute;
@@ -30,15 +30,15 @@ body {
   z-index: 10;
   pointer-events: none;
   user-select: none;
-  opacity: 0.5;
 }
 
 .title-block h1 {
   font-family: 'IBM Plex Mono', monospace;
   font-weight: 300;
   font-size: 0.9rem;
-  letter-spacing: 0.1em;
-  color: white;
+  letter-spacing: 0.3em;
+  color: #00AACC;
+  opacity: 0.4;
   margin: 0 0 2px 0;
   line-height: 1.1;
   text-transform: uppercase;
@@ -48,13 +48,14 @@ body {
   font-family: 'Inter', sans-serif;
   font-weight: 300;
   font-size: 0.6rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: #006688;
+  opacity: 0.3;
   text-transform: uppercase;
   letter-spacing: 0.2em;
 }
 
 /* ============================================================
-   Footer — nearly invisible
+   Footer — nearly invisible teal
    ============================================================ */
 .site-footer {
   position: fixed;
@@ -64,11 +65,11 @@ body {
   font-size: 0.6rem;
   text-align: center;
   padding: 10px;
-  color: rgba(255, 255, 255, 0.2);
+  color: #004466;
   font-family: 'Inter', sans-serif;
   pointer-events: none;
   z-index: 10;
-  opacity: 0.2;
+  opacity: 0.15;
 }
 
 .canvas-container {
@@ -84,12 +85,12 @@ body {
   font-family: 'IBM Plex Mono', monospace;
   font-weight: 300;
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(0, 170, 204, 0.4);
   letter-spacing: 0.1em;
 }
 
 /* ============================================================
-   Region Panel — minimal left-border design
+   Region Panel — teal border, dark background
    ============================================================ */
 .region-panel {
   position: fixed;
@@ -97,7 +98,7 @@ body {
   right: 0;
   width: 300px;
   height: 100vh;
-  background: none;
+  background: rgba(0, 10, 20, 0.8);
   border-left: none;
   padding: 40px 24px 32px 24px;
   z-index: 20;
@@ -113,7 +114,7 @@ body {
   left: 0;
   width: 2px;
   height: calc(100% - 80px);
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(0, 170, 204, 0.2);
   transition: background 0.3s;
 }
 
@@ -122,8 +123,8 @@ body {
   top: 16px;
   right: 16px;
   background: none;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(0, 170, 204, 0.15);
+  color: rgba(0, 170, 204, 0.5);
   width: 24px;
   height: 24px;
   font-size: 0.65rem;
@@ -136,8 +137,8 @@ body {
 }
 
 .region-panel__close:hover {
-  border-color: rgba(255, 255, 255, 0.3);
-  color: white;
+  border-color: rgba(0, 170, 204, 0.4);
+  color: #00DDFF;
 }
 
 .region-panel__lobe-badge {
@@ -146,7 +147,7 @@ body {
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.2em;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(136, 204, 221, 0.6);
   border: 1px solid;
   padding: 2px 8px;
   margin-bottom: 8px;
@@ -156,7 +157,7 @@ body {
   font-family: 'IBM Plex Mono', monospace;
   font-weight: 300;
   font-size: 1.1rem;
-  color: white;
+  color: #00DDFF;
   margin: 0 0 12px 0;
   line-height: 1.3;
 }
@@ -164,7 +165,7 @@ body {
 .region-panel__desc {
   font-size: 0.72rem;
   line-height: 1.65;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(136, 204, 221, 0.6);
   margin: 0 0 16px 0;
 }
 
@@ -173,22 +174,22 @@ body {
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(0, 102, 136, 0.6);
   margin: 16px 0 8px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid rgba(0, 170, 204, 0.06);
   padding-top: 12px;
 }
 
 .region-panel__detail {
   font-size: 0.68rem;
   line-height: 1.6;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(204, 221, 238, 0.6);
   margin: 0 0 4px 0;
 }
 
 .region-panel__tag--pathology {
-  border-color: rgba(231, 76, 60, 0.2);
-  color: rgba(231, 76, 60, 0.7);
+  border-color: rgba(255, 51, 68, 0.25);
+  color: rgba(255, 51, 68, 0.7);
 }
 
 .region-panel__tags {
@@ -199,9 +200,9 @@ body {
 
 .region-panel__tag {
   font-size: 0.62rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(136, 204, 221, 0.6);
   padding: 2px 6px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(0, 170, 204, 0.1);
   white-space: nowrap;
 }
 
@@ -213,7 +214,7 @@ body {
 
 .region-panel__list li {
   font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(204, 221, 238, 0.7);
   padding: 3px 0;
   line-height: 1.5;
 }
@@ -227,7 +228,7 @@ body {
 .region-panel__conn-btn {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(136, 204, 221, 0.65);
   cursor: pointer;
   font-size: 0.7rem;
   font-family: 'Inter', sans-serif;
@@ -240,7 +241,7 @@ body {
 }
 
 .region-panel__conn-btn:hover {
-  color: white;
+  color: #00DDFF;
 }
 
 .region-panel__conn-dot {
@@ -253,12 +254,12 @@ body {
 
 .region-panel__conn-meta {
   font-size: 0.58rem;
-  color: rgba(255, 255, 255, 0.25);
+  color: rgba(0, 102, 136, 0.5);
   font-family: 'IBM Plex Mono', monospace;
 }
 
 /* ============================================================
-   View Controls — bottom-left, icon pills
+   View Controls — bottom-left, teal palette
    ============================================================ */
 .view-controls {
   position: fixed;
@@ -267,10 +268,10 @@ body {
   display: flex;
   gap: 2px;
   z-index: 15;
-  background: rgba(10, 10, 10, 0.6);
+  background: rgba(0, 20, 30, 0.6);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(0, 170, 204, 0.08);
   border-radius: 20px;
   padding: 3px;
 }
@@ -283,21 +284,21 @@ body {
   height: 32px;
   border: none;
   background: transparent;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(0, 170, 204, 0.4);
   cursor: pointer;
   border-radius: 16px;
   transition: color 0.2s, background 0.2s;
 }
 
 .view-controls__btn:hover {
-  color: rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.04);
+  color: rgba(0, 204, 255, 0.7);
+  background: rgba(0, 170, 204, 0.06);
 }
 
 .view-controls__btn--active {
-  color: white;
-  background: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 1px 6px rgba(255, 255, 255, 0.06);
+  color: #00CCFF;
+  background: rgba(0, 170, 204, 0.12);
+  box-shadow: 0 0 8px rgba(0, 204, 255, 0.2), inset 0 0 4px rgba(0, 204, 255, 0.1);
 }
 
 /* ============================================================
@@ -308,10 +309,10 @@ body {
   top: 24px;
   right: 28px;
   z-index: 15;
-  background: rgba(10, 10, 10, 0.5);
+  background: rgba(0, 20, 30, 0.5);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(0, 170, 204, 0.08);
   border-radius: 14px;
   width: 28px;
   height: 28px;
@@ -319,13 +320,13 @@ body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(0, 170, 204, 0.4);
   transition: color 0.2s, border-color 0.2s;
 }
 
 .search-toggle:hover {
-  color: rgba(255, 255, 255, 0.7);
-  border-color: rgba(255, 255, 255, 0.15);
+  color: rgba(0, 204, 255, 0.7);
+  border-color: rgba(0, 170, 204, 0.2);
 }
 
 /* ============================================================
@@ -341,12 +342,12 @@ body {
 
 .search-bar__input {
   width: 100%;
-  background: rgba(10, 10, 10, 0.7);
+  background: rgba(0, 15, 25, 0.8);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(0, 170, 204, 0.12);
   border-radius: 14px;
-  color: white;
+  color: #88CCDD;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 0.7rem;
   padding: 6px 12px;
@@ -355,21 +356,21 @@ body {
 }
 
 .search-bar__input::placeholder {
-  color: rgba(255, 255, 255, 0.25);
+  color: rgba(0, 102, 136, 0.4);
 }
 
 .search-bar__input:focus {
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(0, 204, 255, 0.3);
 }
 
 .search-bar__results {
   list-style: none;
   padding: 0;
   margin: 4px 0 0 0;
-  background: rgba(10, 10, 10, 0.88);
+  background: rgba(0, 10, 20, 0.92);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(0, 170, 204, 0.08);
   border-radius: 10px;
   max-height: 200px;
   overflow-y: auto;
@@ -382,7 +383,7 @@ body {
   width: 100%;
   background: none;
   border: none;
-  color: white;
+  color: #88CCDD;
   padding: 6px 12px;
   cursor: pointer;
   font-family: 'Inter', sans-serif;
@@ -392,18 +393,18 @@ body {
 }
 
 .search-bar__result-btn:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(0, 170, 204, 0.06);
 }
 
 .search-bar__result-name {
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(136, 204, 221, 0.8);
 }
 
 .search-bar__result-lobe {
   font-size: 0.55rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(0, 102, 136, 0.4);
 }
 
 /* ============================================================
@@ -415,10 +416,10 @@ body {
   left: 28px;
   z-index: 15;
   width: 220px;
-  background: rgba(10, 10, 10, 0.6);
+  background: rgba(0, 20, 30, 0.6);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(0, 170, 204, 0.08);
   border-radius: 10px;
   padding: 10px 12px;
 }
@@ -429,16 +430,16 @@ body {
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(0, 102, 136, 0.5);
   margin-bottom: 6px;
 }
 
 .task-selector__select {
   width: 100%;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 30, 45, 0.5);
+  border: 1px solid rgba(0, 170, 204, 0.1);
   border-radius: 6px;
-  color: white;
+  color: #88CCDD;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 0.68rem;
   padding: 4px 6px;
@@ -447,14 +448,14 @@ body {
 }
 
 .task-selector__select option {
-  background: #0a0a14;
-  color: white;
+  background: #020a14;
+  color: #88CCDD;
 }
 
 .task-selector__desc {
   font-size: 0.62rem;
   line-height: 1.5;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(0, 102, 136, 0.5);
   margin: 8px 0 0 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;

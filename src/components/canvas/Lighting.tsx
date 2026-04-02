@@ -1,14 +1,14 @@
 export default function Lighting() {
   return (
     <>
-      {/* Very dim ambient — scene is self-illuminated via emissive + bloom */}
-      <ambientLight intensity={0.05} color="#C0D8FF" />
+      {/* Near-zero ambient — scene is self-illuminated via emissive + bloom */}
+      <ambientLight intensity={0.02} color="#0A1520" />
 
-      {/* Single dim directional for slight depth hint */}
+      {/* Single very dim directional from above with teal tint */}
       <directionalLight
-        position={[3, 4, 2]}
-        intensity={0.08}
-        color="#E0E8FF"
+        position={[2, 4, 1]}
+        intensity={0.1}
+        color="#0088AA"
       />
     </>
   )

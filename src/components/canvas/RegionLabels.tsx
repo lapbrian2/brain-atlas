@@ -4,7 +4,7 @@ import { useBrainStore } from '../../store/useBrainStore'
 
 /**
  * Hover-only tooltip label positioned at the region node.
- * Clean, minimal text — no leader lines.
+ * Teal/cyan text with dark backing for the holographic HUD look.
  */
 export default function RegionLabels() {
   const hoveredRegion = useBrainStore((s) => s.hoveredRegion)
@@ -26,7 +26,7 @@ export default function RegionLabels() {
           >
             <div
               style={{
-                color: 'rgba(255,255,255,0.5)',
+                color: 'rgba(0, 170, 204, 0.5)',
                 fontSize: '11px',
                 fontFamily: "'IBM Plex Mono', monospace",
                 fontWeight: 500,
@@ -54,7 +54,7 @@ export default function RegionLabels() {
     >
       <div
         style={{
-          color: 'rgba(255,255,255,0.9)',
+          color: '#00DDFF',
           fontSize: '11px',
           fontFamily: "'IBM Plex Mono', monospace",
           fontWeight: 400,
@@ -63,10 +63,11 @@ export default function RegionLabels() {
           whiteSpace: 'nowrap',
           pointerEvents: 'none',
           userSelect: 'none',
-          textShadow: '0 1px 6px rgba(0,0,0,0.9)',
-          background: 'rgba(0,0,0,0.4)',
+          textShadow: '0 0 8px rgba(0, 204, 255, 0.5), 0 1px 6px rgba(0,0,0,0.9)',
+          background: 'rgba(0, 10, 20, 0.5)',
           padding: '2px 8px',
           backdropFilter: 'blur(4px)',
+          borderLeft: `2px solid ${region.color}`,
         }}
       >
         {region.name}

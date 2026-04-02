@@ -10,7 +10,7 @@ import {
 import { ToneMappingMode, BlendFunction, Effect } from 'postprocessing'
 import { Vector2, Uniform } from 'three'
 
-const chromaticOffset = new Vector2(0.0015, 0.0015)
+const chromaticOffset = new Vector2(0.002, 0.002)
 
 /**
  * Custom film grain effect for tech/holographic aesthetic.
@@ -28,7 +28,7 @@ class FilmGrainEffect extends Effect {
 
       void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
         float grain = grainHash(uv * 500.0 + time * 100.0) - 0.5;
-        outputColor = inputColor + vec4(vec3(grain * 0.03), 0.0);
+        outputColor = inputColor + vec4(vec3(grain * 0.025), 0.0);
       }
     `, {
       uniforms: new Map([
@@ -60,9 +60,9 @@ export default function PostProcessing() {
   return (
     <EffectComposer>
       <Bloom
-        intensity={0.7}
-        luminanceThreshold={0.4}
-        luminanceSmoothing={0.4}
+        intensity={0.8}
+        luminanceThreshold={0.3}
+        luminanceSmoothing={0.5}
         mipmapBlur
       />
       <ChromaticAberration
@@ -71,7 +71,7 @@ export default function PostProcessing() {
         modulationOffset={0.5}
         blendFunction={BlendFunction.NORMAL}
       />
-      <Vignette offset={0.2} darkness={0.9} />
+      <Vignette offset={0.15} darkness={0.9} />
       <FilmGrain />
       <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
     </EffectComposer>

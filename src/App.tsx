@@ -19,11 +19,10 @@ function App() {
           gl={{ antialias: true, localClippingEnabled: true }}
           performance={{ min: 0.5 }}
           dpr={[1, 2]}
-          shadows
           camera={{ fov: 45, near: 0.1, far: 100, position: [0, 0.5, 3.5] }}
         >
-          <color attach="background" args={['#030308']} />
-          <fog attach="fog" args={['#030308', 6, 20]} />
+          <color attach="background" args={['#020208']} />
+          <fog attach="fog" args={['#020208', 6, 15]} />
 
           <Suspense fallback={null}>
             <BrainScene />

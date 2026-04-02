@@ -2,13 +2,13 @@ import { useState } from 'react'
 import { useBrainStore } from '../../store/useBrainStore'
 
 const LOBE_COLORS: { label: string; color: string }[] = [
-  { label: 'Frontal', color: '#4488FF' },
-  { label: 'Parietal', color: '#00CC88' },
-  { label: 'Temporal', color: '#FFaa33' },
-  { label: 'Occipital', color: '#FF44AA' },
-  { label: 'Subcortical', color: '#00DDFF' },
-  { label: 'Cerebellum', color: '#AA66FF' },
-  { label: 'Brainstem', color: '#FFFFFF' },
+  { label: 'Frontal', color: '#00DDFF' },
+  { label: 'Parietal', color: '#00AA88' },
+  { label: 'Temporal', color: '#FF6633' },
+  { label: 'Occipital', color: '#CC33FF' },
+  { label: 'Subcortical', color: '#FF3344' },
+  { label: 'Cerebellum', color: '#3366FF' },
+  { label: 'Brainstem', color: '#CCDDFF' },
 ]
 
 const TRACT_COLORS: { label: string; color: string }[] = [
@@ -19,11 +19,11 @@ const TRACT_COLORS: { label: string; color: string }[] = [
 ]
 
 const ACTIVITY_RAMP: { label: string; color: string }[] = [
-  { label: 'Low', color: '#1A237E' },
-  { label: '', color: '#00BCD4' },
-  { label: 'Mid', color: '#4CAF50' },
-  { label: '', color: '#FFEB3B' },
-  { label: 'High', color: '#F44336' },
+  { label: 'Low', color: '#0A2A3A' },
+  { label: '', color: '#004466' },
+  { label: 'Mid', color: '#00AA88' },
+  { label: '', color: '#FF6633' },
+  { label: 'High', color: '#FF3344' },
 ]
 
 export default function LegendPanel() {
@@ -36,7 +36,7 @@ export default function LegendPanel() {
     viewMode === 'connectivity'
       ? TRACT_COLORS
       : viewMode === 'activity'
-        ? null // activity uses a gradient ramp
+        ? null
         : LOBE_COLORS
 
   return (
@@ -58,8 +58,8 @@ export default function LegendPanel() {
           display: 'block',
           marginLeft: 'auto',
           background: 'none',
-          border: '1px solid rgba(255,255,255,0.08)',
-          color: 'rgba(255,255,255,0.35)',
+          border: '1px solid rgba(0, 170, 204, 0.1)',
+          color: 'rgba(0, 170, 204, 0.35)',
           fontSize: '9px',
           fontFamily: "'IBM Plex Mono', monospace",
           padding: '2px 6px',
@@ -74,9 +74,9 @@ export default function LegendPanel() {
       {!collapsed && (
         <div
           style={{
-            background: 'rgba(10,10,10,0.5)',
+            background: 'rgba(0, 15, 25, 0.6)',
             backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255,255,255,0.06)',
+            border: '1px solid rgba(0, 170, 204, 0.08)',
             borderRadius: 6,
             padding: '8px 10px',
           }}
@@ -85,7 +85,7 @@ export default function LegendPanel() {
             <>
               <div
                 style={{
-                  color: 'rgba(255,255,255,0.3)',
+                  color: 'rgba(0, 102, 136, 0.5)',
                   fontSize: '9px',
                   textTransform: 'uppercase',
                   letterSpacing: '0.15em',
@@ -111,7 +111,7 @@ export default function LegendPanel() {
                 style={{
                   display: 'flex',
                   justifyContent: 'space-between',
-                  color: 'rgba(255,255,255,0.3)',
+                  color: 'rgba(0, 102, 136, 0.4)',
                   fontSize: '8px',
                   marginTop: 2,
                   width: 100,
@@ -141,7 +141,7 @@ export default function LegendPanel() {
                     flexShrink: 0,
                   }}
                 />
-                <span style={{ color: 'rgba(255,255,255,0.45)' }}>{label}</span>
+                <span style={{ color: 'rgba(136, 204, 221, 0.5)' }}>{label}</span>
               </div>
             ))
           )}
