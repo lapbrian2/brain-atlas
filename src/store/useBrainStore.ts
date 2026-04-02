@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
 
 export type ViewMode = 'explorer' | 'connectivity' | 'activity' | 'quiz'
-export type Layer = 'anatomy' | 'labels' | 'tracts' | 'particles' | 'heatmap'
+export type Layer = 'anatomy' | 'labels' | 'tracts' | 'particles' | 'heatmap' | 'vessels'
 
 interface BrainState {
   viewMode: ViewMode

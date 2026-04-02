@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber'
 import BrainScene from './components/canvas/BrainScene'
 import PostProcessing from './components/canvas/PostProcessing'
 import HUD from './components/ui/HUD'
+import DataReadout from './components/ui/DataReadout'
 import './App.css'
 
 function App() {
@@ -32,6 +33,7 @@ function App() {
       </div>
 
       <HUD />
+      <DataReadout />
 
       <footer className="site-footer">
         Built by Brian Lapinski

@@ -6,8 +6,8 @@ import { REGION_MAP } from '../../data/regions'
 import { useBrainStore } from '../../store/useBrainStore'
 
 const PARTICLES_PER_TRACT = 18
-const PARTICLE_RADIUS = 0.003
 const BASE_SPEED = 0.15
+const BASE_RADIUS = 0.003
 
 const TYPE_COLORS: Record<Connection['type'], THREE.Color> = {
   cortical: new THREE.Color('#00E5FF'),
@@ -75,7 +75,7 @@ export default function Particles() {
   }, [specs, assignments, totalCount])
 
   const geometry = useMemo(
-    () => new THREE.SphereGeometry(PARTICLE_RADIUS, 6, 6),
+    () => new THREE.SphereGeometry(BASE_RADIUS, 6, 6),
     [],
   )
 
@@ -84,9 +84,20 @@ export default function Particles() {
   useFrame((_, delta) => {
     if (!meshRef.current || !particlesActive) return
     for (let i = 0; i < totalCount; i++) {
-      offsets[i] = (offsets[i] + specs[assignments[i]].speed * delta) % 1
+      const speed = specs[assignments[i]].speed
+      offsets[i] = (offsets[i] + speed * delta) % 1
+
       const pos = specs[assignments[i]].curve.getPointAt(offsets[i])
       dummy.position.copy(pos)
+
+      // Size varies with speed: faster particles are larger (1.0-1.8x scale)
+      const speedFactor = 1.0 + (speed / (BASE_SPEED * 1.5)) * 0.8
+      // Fade in/out at start and end of tract
+      const t = offsets[i]
+      const edgeFade = Math.min(t * 5.0, (1.0 - t) * 5.0, 1.0)
+      const scale = speedFactor * edgeFade
+      dummy.scale.setScalar(scale)
+
       dummy.updateMatrix()
       meshRef.current.setMatrixAt(i, dummy.matrix)
     }
@@ -100,7 +111,13 @@ export default function Particles() {
       ref={meshRef}
       args={[geometry, undefined, totalCount]}
     >
-      <meshBasicMaterial vertexColors={false} color="#ffffff" transparent opacity={0.9} />
+      <meshBasicMaterial
+        color="#ffffff"
+        transparent
+        opacity={0.9}
+        blending={THREE.AdditiveBlending}
+        depthWrite={false}
+      />
       <instancedBufferAttribute
         attach="instanceColor"
         args={[colors, 3]}

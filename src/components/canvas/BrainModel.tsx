@@ -91,17 +91,64 @@ function simplex3(x: number, y: number, z: number, perm: Uint8Array): number {
   return 32.0 * (n0 + n1 + n2 + n3)
 }
 
-function fbm(x: number, y: number, z: number, perm: Uint8Array, octaves: number, baseFreq: number, amplitude: number): number {
+/**
+ * FBM with domain warping for organic cortical folding.
+ * Domain warping feeds noise output back into the position before
+ * sampling the next octave, producing more natural, non-uniform wrinkles.
+ */
+function fbmDomainWarped(
+  x: number, y: number, z: number,
+  perm: Uint8Array,
+  octaves: number,
+  baseFreq: number,
+  amplitude: number,
+  warpStrength: number,
+): number {
   let value = 0
   let amp = amplitude
   let freq = baseFreq
+
+  // Domain warp: offset the input by noise before main FBM
+  const warpX = simplex3(x * 1.7 + 3.3, y * 1.7 + 7.1, z * 1.7 + 1.9, perm)
+  const warpY = simplex3(x * 1.7 + 11.5, y * 1.7 + 2.3, z * 1.7 + 5.7, perm)
+  const warpZ = simplex3(x * 1.7 + 8.9, y * 1.7 + 13.1, z * 1.7 + 4.3, perm)
+
+  const wx = x + warpX * warpStrength
+  const wy = y + warpY * warpStrength
+  const wz = z + warpZ * warpStrength
+
   for (let i = 0; i < octaves; i++) {
-    value += amp * simplex3(x * freq, y * freq, z * freq, perm)
+    value += amp * simplex3(wx * freq, wy * freq, wz * freq, perm)
     freq *= 2.0
     amp *= 0.5
   }
   return value
 }
+
+/**
+ * Anisotropic FBM for cerebellar folia — tight parallel ridges.
+ * High frequency on the Y axis, low frequency on X/Z to create
+ * the characteristic horizontal striping of the cerebellum.
+ */
+function fbmAnisotropic(
+  x: number, y: number, z: number,
+  perm: Uint8Array,
+  octaves: number,
+  baseFreq: number,
+  amplitude: number,
+  yScale: number,
+): number {
+  let value = 0
+  let amp = amplitude
+  let freq = baseFreq
+  for (let i = 0; i < octaves; i++) {
+    value += amp * simplex3(x * freq, y * freq * yScale, z * freq, perm)
+    freq *= 2.0
+    amp *= 0.55
+  }
+  return value
+}
+
 
 // ============================================================
 // Anatomical region definitions
@@ -116,61 +163,70 @@ interface AnatomicalRegion {
   noiseFreq: number
   noiseAmp: number
   noiseOctaves: number
+  warpStrength: number
   seed: number
   segments: number
   color: string
   deeperColor: string
   regionIds: string[] // which data region IDs this mesh covers
-  geometryType: 'sphere' | 'ellipsoid'
+  geometryType: 'sphere' | 'ellipsoid' | 'cerebellum' | 'brainstem'
 }
 
+// Anatomical proportions:
+// Real brain: ~15cm wide (X), ~17cm long (Z), ~13cm tall (Y)
+// Model space: ~1.5 wide, ~1.7 long, ~1.3 tall
+// Yakovlevian torque: right frontal petalia (+0.025 Z), left occipital petalia (+0.025 Z)
+
 const ANATOMICAL_REGIONS: AnatomicalRegion[] = [
-  // Left Frontal Lobe
+  // Left Frontal Lobe — ~40% of cortex, wraps around front and top
   {
     id: 'left-frontal',
     name: 'Left Frontal Lobe',
-    position: [-0.38, 0.35, 0.45],
-    scale: [0.42, 0.48, 0.55],
+    position: [-0.36, 0.32, 0.42],
+    scale: [0.44, 0.50, 0.58],
     rotation: [0.05, 0.12, 0.02],
-    noiseFreq: 2.8,
-    noiseAmp: 0.18,
-    noiseOctaves: 6,
+    noiseFreq: 3.2,
+    noiseAmp: 0.25,
+    noiseOctaves: 8,
+    warpStrength: 0.18,
     seed: 42,
-    segments: 48,
+    segments: 56,
     color: '#D4A574',
     deeperColor: '#C49464',
     regionIds: ['prefrontal-cortex', 'brocas-area'],
     geometryType: 'ellipsoid',
   },
-  // Right Frontal Lobe
+  // Right Frontal Lobe — slight right frontal petalia (+0.025 Z)
   {
     id: 'right-frontal',
     name: 'Right Frontal Lobe',
-    position: [0.38, 0.35, 0.45],
-    scale: [0.42, 0.48, 0.55],
+    position: [0.36, 0.32, 0.445],
+    scale: [0.44, 0.50, 0.58],
     rotation: [0.05, -0.12, -0.02],
-    noiseFreq: 2.8,
-    noiseAmp: 0.18,
-    noiseOctaves: 6,
+    noiseFreq: 3.2,
+    noiseAmp: 0.25,
+    noiseOctaves: 8,
+    warpStrength: 0.18,
     seed: 137,
-    segments: 48,
+    segments: 56,
     color: '#D4A574',
     deeperColor: '#C49464',
     regionIds: ['motor-cortex'],
     geometryType: 'ellipsoid',
   },
-  // Left Parietal Lobe
+  // Left Parietal Lobe — behind frontal, separated by central sulcus
   {
     id: 'left-parietal',
     name: 'Left Parietal Lobe',
-    position: [-0.32, 0.55, -0.12],
-    scale: [0.38, 0.35, 0.42],
+    position: [-0.30, 0.55, -0.14],
+    scale: [0.40, 0.36, 0.44],
     rotation: [0.15, 0.08, 0.0],
-    noiseFreq: 3.0,
-    noiseAmp: 0.16,
-    noiseOctaves: 6,
+    noiseFreq: 3.4,
+    noiseAmp: 0.22,
+    noiseOctaves: 7,
+    warpStrength: 0.15,
     seed: 271,
-    segments: 44,
+    segments: 52,
     color: '#D4A574',
     deeperColor: '#C49464',
     regionIds: ['somatosensory-cortex', 'angular-gyrus', 'supramarginal-gyrus'],
@@ -180,31 +236,34 @@ const ANATOMICAL_REGIONS: AnatomicalRegion[] = [
   {
     id: 'right-parietal',
     name: 'Right Parietal Lobe',
-    position: [0.32, 0.55, -0.12],
-    scale: [0.38, 0.35, 0.42],
+    position: [0.30, 0.55, -0.14],
+    scale: [0.40, 0.36, 0.44],
     rotation: [0.15, -0.08, 0.0],
-    noiseFreq: 3.0,
-    noiseAmp: 0.16,
-    noiseOctaves: 6,
+    noiseFreq: 3.4,
+    noiseAmp: 0.22,
+    noiseOctaves: 7,
+    warpStrength: 0.15,
     seed: 314,
-    segments: 44,
+    segments: 52,
     color: '#D4A574',
     deeperColor: '#C49464',
     regionIds: ['precuneus'],
     geometryType: 'ellipsoid',
   },
-  // Left Temporal Lobe
+  // Left Temporal Lobe — elongated horizontally, hangs below/sides
+  // Sylvian fissure separates it from frontal/parietal (the gap between them)
   {
     id: 'left-temporal',
     name: 'Left Temporal Lobe',
-    position: [-0.58, 0.0, 0.08],
-    scale: [0.25, 0.28, 0.48],
-    rotation: [0.0, 0.2, 0.1],
-    noiseFreq: 3.2,
-    noiseAmp: 0.14,
-    noiseOctaves: 5,
+    position: [-0.58, -0.02, 0.06],
+    scale: [0.26, 0.26, 0.52],
+    rotation: [0.0, 0.2, 0.12],
+    noiseFreq: 3.5,
+    noiseAmp: 0.20,
+    noiseOctaves: 7,
+    warpStrength: 0.14,
     seed: 577,
-    segments: 40,
+    segments: 48,
     color: '#D4A574',
     deeperColor: '#C49464',
     regionIds: ['wernickes-area', 'auditory-cortex', 'fusiform-gyrus', 'entorhinal-cortex', 'parahippocampal-gyrus', 'insula'],
@@ -214,31 +273,34 @@ const ANATOMICAL_REGIONS: AnatomicalRegion[] = [
   {
     id: 'right-temporal',
     name: 'Right Temporal Lobe',
-    position: [0.58, 0.0, 0.08],
-    scale: [0.25, 0.28, 0.48],
-    rotation: [0.0, -0.2, -0.1],
-    noiseFreq: 3.2,
-    noiseAmp: 0.14,
-    noiseOctaves: 5,
+    position: [0.58, -0.02, 0.06],
+    scale: [0.26, 0.26, 0.52],
+    rotation: [0.0, -0.2, -0.12],
+    noiseFreq: 3.5,
+    noiseAmp: 0.20,
+    noiseOctaves: 7,
+    warpStrength: 0.14,
     seed: 691,
-    segments: 40,
+    segments: 48,
     color: '#D4A574',
     deeperColor: '#C49464',
     regionIds: [],
     geometryType: 'ellipsoid',
   },
-  // Left Occipital Lobe
+  // Left Occipital Lobe — small, at the very back
+  // Left occipital petalia (+0.025 Z protrusion)
   {
     id: 'left-occipital',
     name: 'Left Occipital Lobe',
-    position: [-0.25, 0.28, -0.62],
+    position: [-0.24, 0.26, -0.645],
     scale: [0.30, 0.32, 0.30],
     rotation: [0.1, 0.1, 0.0],
-    noiseFreq: 3.5,
-    noiseAmp: 0.15,
-    noiseOctaves: 6,
+    noiseFreq: 3.8,
+    noiseAmp: 0.22,
+    noiseOctaves: 7,
+    warpStrength: 0.16,
     seed: 823,
-    segments: 40,
+    segments: 48,
     color: '#D4A574',
     deeperColor: '#C49464',
     regionIds: ['visual-cortex', 'cuneus', 'lingual-gyrus'],
@@ -248,63 +310,67 @@ const ANATOMICAL_REGIONS: AnatomicalRegion[] = [
   {
     id: 'right-occipital',
     name: 'Right Occipital Lobe',
-    position: [0.25, 0.28, -0.62],
+    position: [0.24, 0.26, -0.62],
     scale: [0.30, 0.32, 0.30],
     rotation: [0.1, -0.1, 0.0],
-    noiseFreq: 3.5,
-    noiseAmp: 0.15,
-    noiseOctaves: 6,
+    noiseFreq: 3.8,
+    noiseAmp: 0.22,
+    noiseOctaves: 7,
+    warpStrength: 0.16,
     seed: 967,
-    segments: 40,
+    segments: 48,
     color: '#D4A574',
     deeperColor: '#C49464',
     regionIds: [],
     geometryType: 'ellipsoid',
   },
-  // Cerebellum
+  // Cerebellum — posterior inferior, very tight horizontal ridges (folia)
   {
     id: 'cerebellum-mesh',
     name: 'Cerebellum',
-    position: [0, -0.35, -0.45],
-    scale: [0.50, 0.22, 0.30],
+    position: [0, -0.38, -0.48],
+    scale: [0.52, 0.22, 0.32],
     rotation: [0.2, 0, 0],
-    noiseFreq: 6.0, // High frequency for tight cerebellar folia
-    noiseAmp: 0.12,
-    noiseOctaves: 5,
+    noiseFreq: 5.0,
+    noiseAmp: 0.14,
+    noiseOctaves: 6,
+    warpStrength: 0.06,
     seed: 1117,
-    segments: 48,
+    segments: 56,
     color: '#C9967A',
     deeperColor: '#B8866A',
     regionIds: ['cerebellum'],
-    geometryType: 'ellipsoid',
+    geometryType: 'cerebellum',
   },
-  // Brainstem
+  // Brainstem — tapers downward, truncated cone shape
   {
     id: 'brainstem-mesh',
     name: 'Brainstem',
-    position: [0, -0.52, -0.15],
-    scale: [0.12, 0.32, 0.12],
+    position: [0, -0.55, -0.18],
+    scale: [0.13, 0.34, 0.13],
     rotation: [0.25, 0, 0],
     noiseFreq: 2.0,
-    noiseAmp: 0.04, // Smoother surface
+    noiseAmp: 0.04,
     noiseOctaves: 3,
+    warpStrength: 0.02,
     seed: 1229,
     segments: 24,
     color: '#BFA08A',
     deeperColor: '#A88A74',
     regionIds: ['substantia-nigra', 'ventral-tegmental-area', 'red-nucleus', 'superior-colliculus', 'inferior-colliculus', 'pons', 'medulla', 'pineal-gland'],
-    geometryType: 'ellipsoid',
+    geometryType: 'brainstem',
   },
   // Corpus Callosum (visible in fissure)
   {
     id: 'corpus-callosum-mesh',
     name: 'Corpus Callosum',
-    position: [0, 0.32, 0.0],
-    scale: [0.08, 0.06, 0.45],
+    position: [0, 0.30, 0.0],
+    scale: [0.08, 0.06, 0.48],
     rotation: [0, 0, 0],
     noiseFreq: 2.0,
     noiseAmp: 0.03,
     noiseOctaves: 3,
+    warpStrength: 0.01,
     seed: 1361,
     segments: 20,
     color: '#E8D5C4',
@@ -316,12 +382,13 @@ const ANATOMICAL_REGIONS: AnatomicalRegion[] = [
   {
     id: 'subcortical-group',
     name: 'Subcortical Structures',
-    position: [0, 0.08, 0.08],
-    scale: [0.28, 0.22, 0.25],
+    position: [0, 0.06, 0.06],
+    scale: [0.28, 0.22, 0.26],
     rotation: [0, 0, 0],
     noiseFreq: 2.5,
     noiseAmp: 0.06,
     noiseOctaves: 4,
+    warpStrength: 0.03,
     seed: 1489,
     segments: 28,
     color: '#C4947A',
@@ -339,17 +406,24 @@ for (const ar of ANATOMICAL_REGIONS) {
   }
 }
 
-// Build index map for activity overlay
-const MESH_INDEX_MAP = new Map<string, number>()
-ANATOMICAL_REGIONS.forEach((ar, i) => MESH_INDEX_MAP.set(ar.id, i))
-
 /**
- * Create a noise-displaced sphere geometry for a brain region
+ * Create a noise-displaced geometry for a brain region.
+ * Uses domain-warped FBM for cortical regions,
+ * anisotropic noise for cerebellum,
+ * and a tapered cylinder for brainstem.
  */
 function createBrainGeometry(
   region: AnatomicalRegion,
 ): THREE.BufferGeometry {
-  const geo = new THREE.SphereGeometry(1, region.segments, region.segments)
+  let geo: THREE.BufferGeometry
+
+  if (region.geometryType === 'brainstem') {
+    // Truncated cone — wider at top, narrower at bottom
+    geo = new THREE.CylinderGeometry(0.9, 0.55, 2.0, region.segments, 12)
+  } else {
+    geo = new THREE.SphereGeometry(1, region.segments, region.segments)
+  }
+
   const positions = geo.attributes.position
   const normals = geo.attributes.normal
   const perm = buildPerm(region.seed)
@@ -362,8 +436,30 @@ function createBrainGeometry(
     const ny = normals.getY(i)
     const nz = normals.getZ(i)
 
-    // FBM noise displacement along normal
-    const displacement = fbm(x, y, z, perm, region.noiseOctaves, region.noiseFreq, region.noiseAmp)
+    let displacement: number
+
+    if (region.geometryType === 'cerebellum') {
+      // Tight horizontal folia: high Y frequency, low X/Z
+      displacement = fbmAnisotropic(
+        x, y, z, perm,
+        region.noiseOctaves, region.noiseFreq, region.noiseAmp,
+        4.0, // Y-axis frequency multiplier for tight parallel ridges
+      )
+    } else if (region.geometryType === 'brainstem') {
+      // Minimal noise — smooth surface
+      displacement = fbmDomainWarped(
+        x, y, z, perm,
+        region.noiseOctaves, region.noiseFreq, region.noiseAmp,
+        region.warpStrength,
+      )
+    } else {
+      // Cortical regions: domain-warped FBM for deep realistic folding
+      displacement = fbmDomainWarped(
+        x, y, z, perm,
+        region.noiseOctaves, region.noiseFreq, region.noiseAmp,
+        region.warpStrength,
+      )
+    }
 
     positions.setXYZ(
       i,
@@ -376,6 +472,56 @@ function createBrainGeometry(
   geo.computeVertexNormals()
   return geo
 }
+
+// ============================================================
+// Fresnel rim shader injection for tech/holographic look
+// ============================================================
+const FRESNEL_VERTEX_PARS = /* glsl */ `
+varying vec3 vWorldNormal;
+varying vec3 vViewDir;
+`
+
+const FRESNEL_VERTEX = /* glsl */ `
+vWorldNormal = normalize((modelMatrix * vec4(transformedNormal, 0.0)).xyz);
+vViewDir = normalize(cameraPosition - (modelMatrix * vec4(transformed, 1.0)).xyz);
+`
+
+const FRESNEL_FRAGMENT_PARS = /* glsl */ `
+varying vec3 vWorldNormal;
+varying vec3 vViewDir;
+`
+
+const FRESNEL_FRAGMENT = /* glsl */ `
+float fresnelTerm = 1.0 - abs(dot(vWorldNormal, vViewDir));
+fresnelTerm = pow(fresnelTerm, 3.0);
+vec3 fresnelColor = vec3(0.267, 0.533, 1.0) * fresnelTerm * 0.2;
+gl_FragColor.rgb += fresnelColor;
+`
+
+function applyFresnelShader(material: THREE.MeshPhysicalMaterial) {
+  material.onBeforeCompile = (shader) => {
+    // Vertex shader
+    shader.vertexShader = shader.vertexShader.replace(
+      '#include <common>',
+      '#include <common>\n' + FRESNEL_VERTEX_PARS,
+    )
+    shader.vertexShader = shader.vertexShader.replace(
+      '#include <worldpos_vertex>',
+      '#include <worldpos_vertex>\n' + FRESNEL_VERTEX,
+    )
+
+    // Fragment shader
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <common>',
+      '#include <common>\n' + FRESNEL_FRAGMENT_PARS,
+    )
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <dithering_fragment>',
+      FRESNEL_FRAGMENT + '\n#include <dithering_fragment>',
+    )
+  }
+}
+
 
 // ============================================================
 // Individual region mesh component
@@ -391,24 +537,27 @@ function RegionMesh({ region }: { region: AnatomicalRegion }) {
 
   const geometry = useMemo(() => createBrainGeometry(region), [region])
 
-  const material = useMemo(
-    () =>
-      new THREE.MeshPhysicalMaterial({
-        color: baseColor,
-        roughness: 0.55,
-        metalness: 0.02,
-        clearcoat: 0.2,
-        clearcoatRoughness: 0.4,
-        sheen: 0.3,
-        sheenColor: new THREE.Color('#E8C4A4'),
-        sheenRoughness: 0.6,
-        emissive: deepColor,
-        emissiveIntensity: 0.02,
-        transparent: true,
-        opacity: 0.95,
-      }),
-    [baseColor, deepColor],
-  )
+  const material = useMemo(() => {
+    const mat = new THREE.MeshPhysicalMaterial({
+      color: baseColor,
+      roughness: 0.52,
+      metalness: 0.02,
+      clearcoat: 0.25,
+      clearcoatRoughness: 0.35,
+      sheen: 0.3,
+      sheenColor: new THREE.Color('#E8C4A4'),
+      sheenRoughness: 0.6,
+      emissive: deepColor,
+      emissiveIntensity: 0.02,
+      transparent: true,
+      opacity: 0.95,
+    })
+
+    // Apply fresnel rim effect for tech/scan look
+    applyFresnelShader(mat)
+
+    return mat
+  }, [baseColor, deepColor])
 
   // Determine if this mesh is hovered/selected based on data region mapping
   const isSelected = useMemo(() => {
@@ -515,15 +664,19 @@ function RegionMesh({ region }: { region: AnatomicalRegion }) {
 }
 
 // ============================================================
-// Main BrainModel
+// Main BrainModel with breathing animation
 // ============================================================
 export default function BrainModel() {
   const groupRef = useRef<THREE.Group>(null)
 
-  // Slow gentle rotation
-  useFrame((_, delta) => {
+  // Slow gentle rotation + breathing scale oscillation
+  useFrame((state, delta) => {
     if (groupRef.current) {
       groupRef.current.rotation.y += delta * 0.06
+
+      // Breathing: scale cycles 1.0 -> 1.008 with 6-second period
+      const breathe = 1.0 + Math.sin(state.clock.elapsedTime * (Math.PI * 2.0 / 6.0)) * 0.004
+      groupRef.current.scale.setScalar(breathe)
     }
   })
 
@@ -536,5 +689,5 @@ export default function BrainModel() {
   )
 }
 
-// Export for use in RegionLabels
+// Export for use in RegionLabels and other components
 export { ANATOMICAL_REGIONS, DATA_REGION_TO_MESH }

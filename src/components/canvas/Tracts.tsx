@@ -1,4 +1,5 @@
-import { useMemo } from 'react'
+import { useRef, useMemo } from 'react'
+import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { CONNECTIONS, Connection } from '../../data/connectome'
 import { REGION_MAP } from '../../data/regions'
@@ -22,15 +23,16 @@ interface TractData {
   radius: number
   color: string
   key: string
+  index: number
 }
 
 function buildTracts(): TractData[] {
   const tracts: TractData[] = []
 
-  for (const conn of CONNECTIONS) {
+  CONNECTIONS.forEach((conn, index) => {
     const fromRegion = REGION_MAP.get(conn.from)
     const toRegion = REGION_MAP.get(conn.to)
-    if (!fromRegion || !toRegion) continue
+    if (!fromRegion || !toRegion) return
 
     const start = new THREE.Vector3(...fromRegion.position)
     const end = new THREE.Vector3(...toRegion.position)
@@ -46,13 +48,16 @@ function buildTracts(): TractData[] {
       radius,
       color,
       key: `${conn.from}-${conn.to}`,
+      index,
     })
-  }
+  })
 
   return tracts
 }
 
-function TractMesh({ curve, radius, color }: TractData) {
+function TractMesh({ curve, radius, color, index }: TractData) {
+  const meshRef = useRef<THREE.Mesh>(null)
+
   const geometry = useMemo(
     () => new THREE.TubeGeometry(curve, TUBE_SEGMENTS, radius, RADIAL_SEGMENTS, false),
     [curve, radius],
@@ -68,7 +73,16 @@ function TractMesh({ curve, radius, color }: TractData) {
     [color],
   )
 
-  return <mesh geometry={geometry} material={material} />
+  // Pulsing opacity — different tracts pulse at different rates
+  useFrame((state) => {
+    if (!meshRef.current) return
+    const mat = meshRef.current.material as THREE.MeshBasicMaterial
+    const rate = 0.8 + (index % 7) * 0.15 // vary between 0.8 and 1.7 Hz
+    const pulse = Math.sin(state.clock.elapsedTime * rate * Math.PI * 2) * 0.5 + 0.5
+    mat.opacity = 0.25 + pulse * 0.45 // range 0.25 - 0.70
+  })
+
+  return <mesh ref={meshRef} geometry={geometry} material={material} />
 }
 
 export default function Tracts() {
@@ -80,7 +94,7 @@ export default function Tracts() {
   return (
     <group>
       {tracts.map((t) => (
-        <TractMesh key={t.key} curve={t.curve} radius={t.radius} color={t.color} />
+        <TractMesh key={t.key} curve={t.curve} radius={t.radius} color={t.color} index={t.index} />
       ))}
     </group>
   )
