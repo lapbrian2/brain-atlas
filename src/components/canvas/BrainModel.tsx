@@ -1,10 +1,14 @@
-import { useRef, useMemo, useCallback } from 'react'
+import { useRef, useMemo, useCallback, useEffect } from 'react'
 import { useFrame, ThreeEvent } from '@react-three/fiber'
 import * as THREE from 'three'
+import { useGLTF } from '@react-three/drei'
 import { BRAIN_REGIONS, BrainRegion, REGION_MAP } from '../../data/regions'
 import { CONNECTIONS } from '../../data/connectome'
 import { useBrainStore } from '../../store/useBrainStore'
 import { activityState } from './ActivityOverlay'
+
+// Preload the brain model with Draco decoder support
+useGLTF.preload('/models/brain.glb', true)
 
 // ============================================================
 // Lobe color map — teal/cyan holographic palette
@@ -38,211 +42,98 @@ function getNodeSize(regionId: string): number {
 }
 
 // ============================================================
-// Simplex-like noise for brain displacement
-// ============================================================
-function hash(x: number, y: number, z: number): number {
-  let h = x * 374761393 + y * 668265263 + z * 1274126177
-  h = (h ^ (h >> 13)) * 1274126177
-  return (h ^ (h >> 16)) / 2147483648
-}
-
-function noise3D(x: number, y: number, z: number): number {
-  const ix = Math.floor(x)
-  const iy = Math.floor(y)
-  const iz = Math.floor(z)
-  const fx = x - ix
-  const fy = y - iy
-  const fz = z - iz
-  const ux = fx * fx * (3 - 2 * fx)
-  const uy = fy * fy * (3 - 2 * fy)
-  const uz = fz * fz * (3 - 2 * fz)
-
-  const n000 = hash(ix, iy, iz)
-  const n100 = hash(ix + 1, iy, iz)
-  const n010 = hash(ix, iy + 1, iz)
-  const n110 = hash(ix + 1, iy + 1, iz)
-  const n001 = hash(ix, iy, iz + 1)
-  const n101 = hash(ix + 1, iy, iz + 1)
-  const n011 = hash(ix, iy + 1, iz + 1)
-  const n111 = hash(ix + 1, iy + 1, iz + 1)
-
-  const x00 = n000 + (n100 - n000) * ux
-  const x10 = n010 + (n110 - n010) * ux
-  const x01 = n001 + (n101 - n001) * ux
-  const x11 = n011 + (n111 - n011) * ux
-  const y0 = x00 + (x10 - x00) * uy
-  const y1 = x01 + (x11 - x01) * uy
-  return y0 + (y1 - y0) * uz
-}
-
-function fbm(x: number, y: number, z: number, octaves: number): number {
-  let value = 0
-  let amplitude = 1
-  let frequency = 1
-  let maxVal = 0
-  for (let i = 0; i < octaves; i++) {
-    value += amplitude * noise3D(x * frequency, y * frequency, z * frequency)
-    maxVal += amplitude
-    amplitude *= 0.5
-    frequency *= 2
-  }
-  return value / maxVal
-}
-
-// ============================================================
-// BrainWireframe — wireframe mesh forming brain silhouette
+// BrainWireframe — loads real GLB model and renders as wireframe
 // ============================================================
 function BrainWireframe() {
   const groupRef = useRef<THREE.Group>(null)
+  const { scene } = useGLTF('/models/brain.glb', true)
 
-  const { innerWireframe, outerWireframe, cerebellumWireframe, brainstemWireframe } = useMemo(() => {
-    // Create two hemispheres with a gap
-    const createHemisphere = (side: number, segments: number): THREE.BufferGeometry => {
-      const geo = new THREE.SphereGeometry(0.85, segments, segments, 0, Math.PI * 2, 0, Math.PI)
-      const pos = geo.attributes.position
+  const wireframeData = useMemo(() => {
+    const meshes: { geometry: THREE.WireframeGeometry; isOuter: boolean }[] = []
+
+    // Compute bounding box of the entire scene to center and scale it
+    const box = new THREE.Box3()
+
+    scene.traverse((child) => {
+      if (!(child instanceof THREE.Mesh)) return
+      // Skip Plane objects (label planes from the original model)
+      if (child.name.toLowerCase().includes('plane')) return
+
+      const geo = child.geometry as THREE.BufferGeometry
+      if (!geo || !geo.attributes.position) return
+
+      // Apply the mesh's world transform to the geometry for bounding box calc
+      const clonedGeo = geo.clone()
+      child.updateWorldMatrix(true, false)
+      clonedGeo.applyMatrix4(child.matrixWorld)
+      const meshBox = new THREE.Box3().setFromBufferAttribute(clonedGeo.attributes.position as THREE.BufferAttribute)
+      box.union(meshBox)
+      clonedGeo.dispose()
+    })
+
+    // Compute centering offset and scale
+    const center = new THREE.Vector3()
+    box.getCenter(center)
+    const size = new THREE.Vector3()
+    box.getSize(size)
+    const maxDim = Math.max(size.x, size.y, size.z)
+    const targetRadius = 1.1
+    const scaleFactor = (targetRadius * 2) / maxDim
+
+    scene.traverse((child) => {
+      if (!(child instanceof THREE.Mesh)) return
+      if (child.name.toLowerCase().includes('plane')) return
+
+      const geo = child.geometry as THREE.BufferGeometry
+      if (!geo || !geo.attributes.position) return
+
+      // Clone and transform geometry to world space, then center and scale
+      const transformedGeo = geo.clone()
+      child.updateWorldMatrix(true, false)
+      transformedGeo.applyMatrix4(child.matrixWorld)
+
+      // Center and scale
+      const pos = transformedGeo.attributes.position as THREE.BufferAttribute
       const arr = pos.array as Float32Array
-
       for (let i = 0; i < pos.count; i++) {
-        let x = arr[i * 3]
-        let y = arr[i * 3 + 1]
-        let z = arr[i * 3 + 2]
-
-        // Apply brain shape: elongate z, flatten y, narrow x per hemisphere
-        const origX = x
-        const origY = y
-        const origZ = z
-
-        // Noise displacement for sulci/gyri
-        const noiseFreq = 2.0
-        const noiseAmp = 0.06
-        const displacement = fbm(origX * noiseFreq, origY * noiseFreq, origZ * noiseFreq, 5) * noiseAmp
-
-        const r = Math.sqrt(x * x + y * y + z * z)
-        if (r > 0.001) {
-          const nx = x / r
-          const ny = y / r
-          const nz = z / r
-          x += nx * displacement
-          y += ny * displacement
-          z += nz * displacement
-        }
-
-        // Elongate front-to-back
-        z *= 1.1
-        // Slightly flatten top-to-bottom
-        y *= 0.82
-
-        // Push hemisphere to its side
-        if (side === -1) {
-          x = -Math.abs(x) * 0.6 - 0.04
-        } else {
-          x = Math.abs(x) * 0.6 + 0.04
-        }
-
-        // Offset to brain center
-        y += 0.15
-
-        // Taper bottom
-        const yNorm = (y - 0.15) / (0.85 * 0.82)
-        if (yNorm < -0.3) {
-          const taper = 1.0 - Math.abs(yNorm + 0.3) * 0.4
-          x *= Math.max(taper, 0.5)
-          z *= Math.max(taper, 0.6)
-        }
-
-        arr[i * 3] = x
-        arr[i * 3 + 1] = y
-        arr[i * 3 + 2] = z
+        arr[i * 3] = (arr[i * 3] - center.x) * scaleFactor
+        arr[i * 3 + 1] = (arr[i * 3 + 1] - center.y) * scaleFactor
+        arr[i * 3 + 2] = (arr[i * 3 + 2] - center.z) * scaleFactor
       }
-
       pos.needsUpdate = true
-      geo.computeVertexNormals()
-      return geo
-    }
 
-    const leftHemi = createHemisphere(-1, 64)
-    const rightHemi = createHemisphere(1, 64)
+      // Inner wireframe
+      const wireGeo = new THREE.WireframeGeometry(transformedGeo)
+      meshes.push({ geometry: wireGeo, isOuter: false })
 
-    // Merge both hemispheres
-    const mergedGeo = new THREE.BufferGeometry()
-    const leftPos = leftHemi.attributes.position.array as Float32Array
-    const rightPos = rightHemi.attributes.position.array as Float32Array
-    const leftIdx = leftHemi.index!.array
-    const rightIdx = rightHemi.index!.array
-
-    const mergedPositions = new Float32Array(leftPos.length + rightPos.length)
-    mergedPositions.set(leftPos, 0)
-    mergedPositions.set(rightPos, leftPos.length)
-
-    const mergedIndices = new Uint32Array(leftIdx.length + rightIdx.length)
-    mergedIndices.set(leftIdx, 0)
-    const leftVertCount = leftPos.length / 3
-    for (let i = 0; i < rightIdx.length; i++) {
-      mergedIndices[leftIdx.length + i] = rightIdx[i] + leftVertCount
-    }
-
-    mergedGeo.setAttribute('position', new THREE.BufferAttribute(mergedPositions, 3))
-    mergedGeo.setIndex(new THREE.BufferAttribute(mergedIndices, 1))
-
-    // Create wireframes
-    const innerWire = new THREE.WireframeGeometry(mergedGeo)
-    const outerGeo = mergedGeo.clone()
-    const outerPos = outerGeo.attributes.position.array as Float32Array
-    for (let i = 0; i < outerPos.length; i++) {
-      outerPos[i] *= 1.02
-    }
-    const outerWire = new THREE.WireframeGeometry(outerGeo)
-
-    // Cerebellum: smaller sphere below/behind
-    const cerebGeo = new THREE.SphereGeometry(0.35, 32, 32)
-    const cerebPos = cerebGeo.attributes.position.array as Float32Array
-    for (let i = 0; i < cerebPos.length / 3; i++) {
-      let x = cerebPos[i * 3]
-      let y = cerebPos[i * 3 + 1]
-      let z = cerebPos[i * 3 + 2]
-      // Noise
-      const d = fbm(x * 3, y * 3, z * 3, 4) * 0.03
-      const r = Math.sqrt(x * x + y * y + z * z)
-      if (r > 0.001) {
-        x += (x / r) * d
-        y += (y / r) * d
-        z += (z / r) * d
+      // Outer ghost wireframe at 1.01x for depth effect
+      const outerGeo = transformedGeo.clone()
+      const outerPos = outerGeo.attributes.position as THREE.BufferAttribute
+      const outerArr = outerPos.array as Float32Array
+      for (let i = 0; i < outerPos.count; i++) {
+        outerArr[i * 3] *= 1.01
+        outerArr[i * 3 + 1] *= 1.01
+        outerArr[i * 3 + 2] *= 1.01
       }
-      // Position below and behind
-      y = y * 0.7 - 0.55
-      z = z * 0.9 - 0.45
-      cerebPos[i * 3] = x
-      cerebPos[i * 3 + 1] = y
-      cerebPos[i * 3 + 2] = z
-    }
-    cerebGeo.attributes.position.needsUpdate = true
-    const cerebWire = new THREE.WireframeGeometry(cerebGeo)
+      outerPos.needsUpdate = true
+      const outerWireGeo = new THREE.WireframeGeometry(outerGeo)
+      meshes.push({ geometry: outerWireGeo, isOuter: true })
 
-    // Brainstem: cylinder extending down
-    const stemGeo = new THREE.CylinderGeometry(0.08, 0.06, 0.5, 16, 8)
-    const stemPos = stemGeo.attributes.position.array as Float32Array
-    for (let i = 0; i < stemPos.length / 3; i++) {
-      stemPos[i * 3 + 1] -= 0.85 // Move down
-      stemPos[i * 3 + 2] -= 0.25 // Move slightly back
-    }
-    stemGeo.attributes.position.needsUpdate = true
-    const stemWire = new THREE.WireframeGeometry(stemGeo)
+      outerGeo.dispose()
+      transformedGeo.dispose()
+    })
 
-    // Cleanup
-    leftHemi.dispose()
-    rightHemi.dispose()
-    mergedGeo.dispose()
-    outerGeo.dispose()
-    cerebGeo.dispose()
-    stemGeo.dispose()
+    return meshes
+  }, [scene])
 
-    return {
-      innerWireframe: innerWire,
-      outerWireframe: outerWire,
-      cerebellumWireframe: cerebWire,
-      brainstemWireframe: stemWire,
+  // Cleanup wireframe geometries on unmount
+  useEffect(() => {
+    return () => {
+      for (const wf of wireframeData) {
+        wf.geometry.dispose()
+      }
     }
-  }, [])
+  }, [wireframeData])
 
   useFrame((state) => {
     if (groupRef.current) {
@@ -252,49 +143,17 @@ function BrainWireframe() {
 
   return (
     <group ref={groupRef}>
-      {/* Primary wireframe shell */}
-      <lineSegments geometry={innerWireframe}>
-        <lineBasicMaterial
-          color="#0A3040"
-          transparent
-          opacity={0.4}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-        />
-      </lineSegments>
-
-      {/* Outer ghost wireframe for depth */}
-      <lineSegments geometry={outerWireframe}>
-        <lineBasicMaterial
-          color="#0A3040"
-          transparent
-          opacity={0.12}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-        />
-      </lineSegments>
-
-      {/* Cerebellum wireframe */}
-      <lineSegments geometry={cerebellumWireframe}>
-        <lineBasicMaterial
-          color="#0A2838"
-          transparent
-          opacity={0.3}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-        />
-      </lineSegments>
-
-      {/* Brainstem wireframe */}
-      <lineSegments geometry={brainstemWireframe}>
-        <lineBasicMaterial
-          color="#0A2838"
-          transparent
-          opacity={0.25}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-        />
-      </lineSegments>
+      {wireframeData.map((wf, i) => (
+        <lineSegments key={i} geometry={wf.geometry}>
+          <lineBasicMaterial
+            color={wf.isOuter ? '#0A3040' : '#0A3040'}
+            transparent
+            opacity={wf.isOuter ? 0.15 : 0.4}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+          />
+        </lineSegments>
+      ))}
     </group>
   )
 }
