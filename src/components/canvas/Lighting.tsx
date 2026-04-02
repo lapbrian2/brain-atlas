@@ -1,28 +1,31 @@
 export default function Lighting() {
   return (
     <>
-      {/* Ambient fill */}
-      <ambientLight intensity={0.15} color="#E8F0FF" />
+      {/* Almost no ambient -- brain emerges from darkness */}
+      <ambientLight intensity={0.05} color="#D8D0E0" />
 
-      {/* Key light -- cool directional from top-right */}
+      {/* Key light -- strong from above-right, warm-neutral */}
       <directionalLight
-        position={[5, 5, 5]}
-        intensity={1.2}
-        color="#E8F0FF"
+        position={[4, 6, 3]}
+        intensity={1.5}
+        color="#F0E8E0"
+        castShadow
       />
 
-      {/* Fill light -- softer blue from opposite side */}
-      <directionalLight
-        position={[-3, 2, -3]}
-        intensity={0.4}
-        color="#B0C4FF"
-      />
-
-      {/* Rim / accent from below */}
+      {/* Subtle rim light from below-left, cool blue */}
       <pointLight
-        position={[0, -3, 3]}
-        intensity={0.3}
-        color="#94B8FF"
+        position={[-3, -2, 2]}
+        intensity={0.2}
+        color="#6088B0"
+        decay={2}
+        distance={10}
+      />
+
+      {/* Very faint back fill to keep the rear from going pure black */}
+      <directionalLight
+        position={[-2, 1, -4]}
+        intensity={0.08}
+        color="#A0B0C0"
       />
     </>
   )

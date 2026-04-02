@@ -19,10 +19,10 @@ function App() {
           performance={{ min: 0.5 }}
           dpr={[1, 2]}
           shadows
-          camera={{ fov: 45, near: 0.1, far: 100, position: [0, 0.5, 4] }}
+          camera={{ fov: 45, near: 0.1, far: 100, position: [0, 0.5, 3.5] }}
         >
-          <color attach="background" args={['#060612']} />
-          <fog attach="fog" args={['#060612', 6, 20]} />
+          <color attach="background" args={['#050510']} />
+          <fog attach="fog" args={['#050510', 5, 18]} />
 
           <Suspense fallback={null}>
             <BrainScene />
@@ -33,12 +33,8 @@ function App() {
 
       <HUD />
 
-      <div className="loading-fallback" style={{ display: 'none' }}>
-        Loading neural atlas...
-      </div>
-
       <footer className="site-footer">
-        Built by Brian Lapinski | React Three Fiber + Three.js
+        Built by Brian Lapinski
       </footer>
     </div>
   )
