@@ -2,8 +2,8 @@ import { useRef, useMemo, useCallback, useEffect, useState } from 'react'
 import { useFrame, ThreeEvent } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useGLTF } from '@react-three/drei'
-import { BRAIN_REGIONS, BrainRegion } from '../../data/regions'
-import { CONNECTIONS } from '../../data/connectome'
+import { BRAIN_REGIONS, BrainRegion, REGION_MAP } from '../../data/regions'
+import { CONNECTIONS, Connection } from '../../data/connectome'
 import { useBrainStore } from '../../store/useBrainStore'
 import { activityState } from './ActivityOverlay'
 
@@ -11,63 +11,13 @@ import { activityState } from './ActivityOverlay'
 useGLTF.preload('/models/brain.glb', true)
 
 // ============================================================
-// Lobe color map — teal/cyan holographic palette
+// Neon color map by connection type
 // ============================================================
-const LOBE_COLORS: Record<BrainRegion['lobe'], string> = {
-  frontal: '#00DDFF',
-  parietal: '#00AA88',
-  temporal: '#FF6633',
-  occipital: '#CC33FF',
-  subcortical: '#FF3344',
-  cerebellum: '#3366FF',
-  brainstem: '#CCDDFF',
-}
-
-// ============================================================
-// Importance tiers — major regions glow bright, minor ones dim
-// ============================================================
-const MAJOR_REGIONS = new Set([
-  'prefrontal-cortex',
-  'motor-cortex',
-  'somatosensory-cortex',
-  'brocas-area',
-  'wernickes-area',
-  'visual-cortex',
-  'auditory-cortex',
-  'hippocampus',
-  'amygdala',
-  'thalamus',
-  'cerebellum',
-  'cingulate-cortex',
-  'insula',
-  'precuneus',
-  'pons',
-])
-
-function getImportanceTier(regionId: string): 'major' | 'minor' {
-  return MAJOR_REGIONS.has(regionId) ? 'major' : 'minor'
-}
-
-// City-light sizes
-const CITY_LIGHT = {
-  major: {
-    core: 0.008,
-    halo: 0.04,
-    atmosphere: 0.08,
-    coreOpacity: 1.0,
-    haloOpacity: 0.2,
-    atmosphereOpacity: 0.06,
-    hoverAtmosphere: 0.12,
-  },
-  minor: {
-    core: 0.004,
-    halo: 0.02,
-    atmosphere: 0.04,
-    coreOpacity: 0.7,
-    haloOpacity: 0.1,
-    atmosphereOpacity: 0.03,
-    hoverAtmosphere: 0.07,
-  },
+const NEON_COLORS: Record<Connection['type'], string> = {
+  cortical: '#00FFEE',    // Electric cyan
+  subcortical: '#FF00AA', // Hot magenta
+  commissural: '#FFCC00', // Neon gold
+  projection: '#00FF66',  // Laser green
 }
 
 // ============================================================
@@ -78,6 +28,9 @@ let surfacePositionsMap: Map<string, THREE.Vector3> = new Map()
 export function getSurfacePosition(regionId: string): THREE.Vector3 | undefined {
   return surfacePositionsMap.get(regionId)
 }
+
+// Store brain meshes at module level for raycasting in highway surface projection
+let brainSurfaceMeshes: THREE.Mesh[] = []
 
 // ============================================================
 // Project regions onto brain surface via raycasting
@@ -99,7 +52,6 @@ function projectRegionsOntoSurface(
 
     const intersects = raycaster.intersectObjects(brainMeshes, false)
     if (intersects.length > 0) {
-      // Snap to the brain surface + tiny offset outward so it sits ON the surface
       const hitPoint = intersects[0].point.clone()
       const normal = intersects[0].face?.normal ?? dir
       hitPoint.add(normal.clone().multiplyScalar(0.01))
@@ -114,19 +66,50 @@ function projectRegionsOntoSurface(
 }
 
 // ============================================================
-// BrainWireframe — loads real GLB model, renders as wireframe,
-// and projects region nodes onto the surface after loading
+// Project a point onto the brain surface via raycasting
+// ============================================================
+function projectPointOntoSurface(
+  point: THREE.Vector3,
+  meshes: THREE.Mesh[],
+): THREE.Vector3 {
+  if (meshes.length === 0) return point.clone()
+
+  const raycaster = new THREE.Raycaster()
+  const dir = point.clone().normalize()
+
+  // Cast from outside inward
+  const origin = dir.clone().multiplyScalar(3)
+  raycaster.set(origin, dir.clone().negate())
+
+  const intersects = raycaster.intersectObjects(meshes, false)
+  if (intersects.length > 0) {
+    const hit = intersects[0].point.clone()
+    const normal = intersects[0].face?.normal ?? dir
+    // Offset slightly outward so tubes sit ON the surface
+    hit.add(normal.clone().multiplyScalar(0.012))
+    return hit
+  }
+
+  // Fallback: push to approximate surface radius
+  return dir.multiplyScalar(point.length() * 0.95)
+}
+
+// ============================================================
+// BrainWireframe — loads real GLB model, renders THREE layers:
+// 1. SOLID dark brain mesh (weight + depth)
+// 2. Subtle wireframe overlay (grid lines)
+// 3. Outer glow shell (atmospheric rim light)
 // ============================================================
 function BrainWireframe({ onMeshesReady }: { onMeshesReady: (meshes: THREE.Mesh[]) => void }) {
   const groupRef = useRef<THREE.Group>(null)
   const { scene } = useGLTF('/models/brain.glb', true)
   const meshesReported = useRef(false)
 
-  const wireframeData = useMemo(() => {
-    const meshes: { geometry: THREE.WireframeGeometry; isOuter: boolean }[] = []
+  const brainData = useMemo(() => {
+    const solidGeometries: THREE.BufferGeometry[] = []
+    const wireGeometries: THREE.WireframeGeometry[] = []
     const surfaceMeshes: THREE.Mesh[] = []
 
-    // Compute bounding box of the entire scene to center and scale it
     const box = new THREE.Box3()
 
     scene.traverse((child) => {
@@ -144,7 +127,6 @@ function BrainWireframe({ onMeshesReady }: { onMeshesReady: (meshes: THREE.Mesh[
       clonedGeo.dispose()
     })
 
-    // Compute centering offset and scale
     const center = new THREE.Vector3()
     box.getCenter(center)
     const size = new THREE.Vector3()
@@ -160,12 +142,10 @@ function BrainWireframe({ onMeshesReady }: { onMeshesReady: (meshes: THREE.Mesh[
       const geo = child.geometry as THREE.BufferGeometry
       if (!geo || !geo.attributes.position) return
 
-      // Clone and transform geometry to world space, then center and scale
       const transformedGeo = geo.clone()
       child.updateWorldMatrix(true, false)
       transformedGeo.applyMatrix4(child.matrixWorld)
 
-      // Center and scale
       const pos = transformedGeo.attributes.position as THREE.BufferAttribute
       const arr = pos.array as Float32Array
       for (let i = 0; i < pos.count; i++) {
@@ -175,7 +155,6 @@ function BrainWireframe({ onMeshesReady }: { onMeshesReady: (meshes: THREE.Mesh[
       }
       pos.needsUpdate = true
 
-      // Build a real Mesh for raycasting (non-visible, just for intersection tests)
       const surfaceGeo = transformedGeo.clone()
       surfaceGeo.computeBoundingSphere()
       surfaceGeo.computeBoundingBox()
@@ -185,50 +164,36 @@ function BrainWireframe({ onMeshesReady }: { onMeshesReady: (meshes: THREE.Mesh[
       )
       surfaceMeshes.push(surfaceMesh)
 
-      // Inner wireframe
+      const solidGeo = transformedGeo.clone()
+      solidGeo.computeVertexNormals()
+      solidGeometries.push(solidGeo)
+
       const wireGeo = new THREE.WireframeGeometry(transformedGeo)
-      meshes.push({ geometry: wireGeo, isOuter: false })
+      wireGeometries.push(wireGeo)
 
-      // Outer ghost wireframe at 1.01x for depth effect
-      const outerGeo = transformedGeo.clone()
-      const outerPos = outerGeo.attributes.position as THREE.BufferAttribute
-      const outerArr = outerPos.array as Float32Array
-      for (let i = 0; i < outerPos.count; i++) {
-        outerArr[i * 3] *= 1.01
-        outerArr[i * 3 + 1] *= 1.01
-        outerArr[i * 3 + 2] *= 1.01
-      }
-      outerPos.needsUpdate = true
-      const outerWireGeo = new THREE.WireframeGeometry(outerGeo)
-      meshes.push({ geometry: outerWireGeo, isOuter: true })
-
-      outerGeo.dispose()
       transformedGeo.dispose()
     })
 
-    return { wireframes: meshes, surfaceMeshes }
+    return { solidGeometries, wireGeometries, surfaceMeshes }
   }, [scene])
 
-  // Report surface meshes for raycasting once
   useEffect(() => {
-    if (!meshesReported.current && wireframeData.surfaceMeshes.length > 0) {
+    if (!meshesReported.current && brainData.surfaceMeshes.length > 0) {
       meshesReported.current = true
-      onMeshesReady(wireframeData.surfaceMeshes)
+      onMeshesReady(brainData.surfaceMeshes)
     }
-  }, [wireframeData.surfaceMeshes, onMeshesReady])
+  }, [brainData.surfaceMeshes, onMeshesReady])
 
-  // Cleanup wireframe geometries on unmount
   useEffect(() => {
     return () => {
-      for (const wf of wireframeData.wireframes) {
-        wf.geometry.dispose()
-      }
-      for (const sm of wireframeData.surfaceMeshes) {
+      for (const geo of brainData.solidGeometries) geo.dispose()
+      for (const geo of brainData.wireGeometries) geo.dispose()
+      for (const sm of brainData.surfaceMeshes) {
         sm.geometry.dispose()
         ;(sm.material as THREE.Material).dispose()
       }
     }
-  }, [wireframeData])
+  }, [brainData])
 
   useFrame((state) => {
     if (groupRef.current) {
@@ -238,16 +203,45 @@ function BrainWireframe({ onMeshesReady }: { onMeshesReady: (meshes: THREE.Mesh[
 
   return (
     <group ref={groupRef}>
-      {wireframeData.wireframes.map((wf, i) => (
-        <lineSegments key={i} geometry={wf.geometry}>
-          <lineBasicMaterial
-            color={wf.isOuter ? '#0A3040' : '#0A3040'}
+      {/* Layer 1: SOLID dark brain mesh */}
+      {brainData.solidGeometries.map((geo, i) => (
+        <mesh key={`solid-${i}`} geometry={geo}>
+          <meshStandardMaterial
+            color="#061018"
+            roughness={0.9}
+            metalness={0.3}
             transparent
-            opacity={wf.isOuter ? 0.15 : 0.4}
-            blending={THREE.AdditiveBlending}
+            opacity={0.85}
+            emissive="#041010"
+            emissiveIntensity={0.1}
+          />
+        </mesh>
+      ))}
+
+      {/* Layer 2: Subtle wireframe OVERLAY */}
+      {brainData.wireGeometries.map((geo, i) => (
+        <lineSegments key={`wire-${i}`} geometry={geo}>
+          <lineBasicMaterial
+            color="#0A4050"
+            transparent
+            opacity={0.12}
             depthWrite={false}
           />
         </lineSegments>
+      ))}
+
+      {/* Layer 3: Outer glow shell */}
+      {brainData.solidGeometries.map((geo, i) => (
+        <mesh key={`glow-${i}`} geometry={geo} scale={1.02}>
+          <meshBasicMaterial
+            color="#0A2030"
+            transparent
+            opacity={0.04}
+            side={THREE.BackSide}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+          />
+        </mesh>
       ))}
     </group>
   )
@@ -277,7 +271,6 @@ function HUDRings() {
     { radius: 2.0, tube: 0.001, tilt: [-0.15, 0.4, -0.2], color: '#003344', opacity: 0.08, ref: ring4Ref },
   ], [])
 
-  // Tick marks on rings
   const tickGeometry = useMemo(() => {
     const geo = new THREE.BufferGeometry()
     const positions: number[] = []
@@ -309,7 +302,6 @@ function HUDRings() {
               depthWrite={false}
             />
           </mesh>
-          {/* Tick marks */}
           <lineSegments
             geometry={tickGeometry}
             scale={[cfg.radius, cfg.radius, 1]}
@@ -330,340 +322,267 @@ function HUDRings() {
 }
 
 // ============================================================
-// RegionNode — city-light effect: bright core + soft halo + atmosphere
+// Highway data structure built from connectome
 // ============================================================
-interface RegionNodeProps {
-  region: BrainRegion
+export interface HighwayData {
+  connection: Connection
+  curve: THREE.CatmullRomCurve3
+  radius: number
+  glowRadius: number
+  color: THREE.Color
+  fromName: string
+  toName: string
+  key: string
   index: number
-  surfacePosition: THREE.Vector3
-}
-
-function RegionNode({ region, index, surfacePosition }: RegionNodeProps) {
-  const coreRef = useRef<THREE.Mesh>(null)
-  const haloRef = useRef<THREE.Mesh>(null)
-  const atmosphereRef = useRef<THREE.Mesh>(null)
-  const selectRegion = useBrainStore((s) => s.selectRegion)
-  const setHovered = useBrainStore((s) => s.setHoveredRegion)
-  const selectedRegion = useBrainStore((s) => s.selectedRegion)
-  const hoveredRegion = useBrainStore((s) => s.hoveredRegion)
-
-  const lobeColor = LOBE_COLORS[region.lobe]
-  const tier = getImportanceTier(region.id)
-  const sizes = CITY_LIGHT[tier]
-  const isSelected = selectedRegion === region.id
-  const isHovered = hoveredRegion === region.id
-
-  const color = useMemo(() => new THREE.Color(lobeColor), [lobeColor])
-
-  const handleClick = useCallback(
-    (e: ThreeEvent<MouseEvent>) => {
-      e.stopPropagation()
-      selectRegion(isSelected ? null : region.id)
-    },
-    [selectRegion, region.id, isSelected],
-  )
-
-  const handlePointerOver = useCallback(
-    (e: ThreeEvent<PointerEvent>) => {
-      e.stopPropagation()
-      setHovered(region.id)
-      document.body.style.cursor = 'pointer'
-    },
-    [setHovered, region.id],
-  )
-
-  const handlePointerOut = useCallback(() => {
-    setHovered(null)
-    document.body.style.cursor = 'default'
-  }, [setHovered])
-
-  useFrame((state) => {
-    if (!coreRef.current) return
-
-    // Check activity state
-    const act = activityState.active
-      ? (activityState.activations.find((a) => a.id === region.id)?.currentActivation ?? 0.05)
-      : 0
-
-    // Base pulse — staggered by index
-    const pulseOffset = index * 0.7
-    const pulseSpeed = act > 0.1 ? 2.5 + act * 2.0 : 1.2
-    const pulse = Math.sin(state.clock.elapsedTime * pulseSpeed + pulseOffset) * 0.5 + 0.5
-
-    // Core brightness
-    let coreBrightness = sizes.coreOpacity
-    if (isHovered) coreBrightness = 1.0
-    if (isSelected) coreBrightness = 1.0
-    if (activityState.active) coreBrightness = 0.3 + act * 0.7
-
-    // Core scale — subtle pulse
-    let coreScale = sizes.core
-    if (activityState.active) coreScale = sizes.core * (0.5 + act * 1.5)
-    if (isHovered) coreScale *= 1.4
-    if (isSelected) coreScale *= 1.3
-    const coreScaleAnimated = coreScale * (0.9 + pulse * 0.2)
-
-    const currentCore = coreRef.current.scale.x
-    const newCore = currentCore + (coreScaleAnimated - currentCore) * 0.1
-    coreRef.current.scale.setScalar(newCore)
-    const coreMat = coreRef.current.material as THREE.MeshBasicMaterial
-    coreMat.opacity = coreBrightness
-
-    // Halo
-    if (haloRef.current) {
-      let haloScale = sizes.halo
-      if (isHovered) haloScale *= 1.5
-      if (isSelected) haloScale *= 1.3
-      if (activityState.active) haloScale = sizes.halo * (0.5 + act * 1.5)
-      const haloAnimated = haloScale * (0.85 + pulse * 0.3)
-
-      const currentHalo = haloRef.current.scale.x
-      haloRef.current.scale.setScalar(currentHalo + (haloAnimated - currentHalo) * 0.1)
-
-      const haloMat = haloRef.current.material as THREE.MeshBasicMaterial
-      let haloOpacity = sizes.haloOpacity + pulse * 0.05
-      if (isHovered) haloOpacity = 0.35
-      if (isSelected) haloOpacity = 0.3
-      if (activityState.active) haloOpacity = 0.05 + act * 0.35
-      haloMat.opacity = haloOpacity
-    }
-
-    // Atmosphere
-    if (atmosphereRef.current) {
-      let atmoScale = isHovered ? sizes.hoverAtmosphere : sizes.atmosphere
-      if (isSelected) atmoScale = sizes.hoverAtmosphere
-      if (activityState.active) atmoScale = sizes.atmosphere * (0.5 + act * 2.0)
-
-      const currentAtmo = atmosphereRef.current.scale.x
-      atmosphereRef.current.scale.setScalar(currentAtmo + (atmoScale - currentAtmo) * 0.08)
-
-      const atmoMat = atmosphereRef.current.material as THREE.MeshBasicMaterial
-      let atmoOpacity = sizes.atmosphereOpacity
-      if (isHovered) atmoOpacity = 0.12
-      if (isSelected) atmoOpacity = 0.1
-      if (activityState.active) atmoOpacity = 0.02 + act * 0.15
-      atmoMat.opacity = atmoOpacity
-    }
-  })
-
-  return (
-    <group position={surfacePosition}>
-      {/* Bright core — city pinpoint */}
-      <mesh
-        ref={coreRef}
-        onClick={handleClick}
-        onPointerOver={handlePointerOver}
-        onPointerOut={handlePointerOut}
-        scale={sizes.core}
-      >
-        <sphereGeometry args={[1, 8, 8]} />
-        <meshBasicMaterial
-          color={color}
-          transparent
-          opacity={sizes.coreOpacity}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-        />
-      </mesh>
-
-      {/* Soft glow halo */}
-      <mesh ref={haloRef} scale={sizes.halo}>
-        <sphereGeometry args={[1, 6, 6]} />
-        <meshBasicMaterial
-          color={color}
-          transparent
-          opacity={sizes.haloOpacity}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-        />
-      </mesh>
-
-      {/* Wider atmospheric spread */}
-      <mesh ref={atmosphereRef} scale={sizes.atmosphere}>
-        <sphereGeometry args={[1, 6, 6]} />
-        <meshBasicMaterial
-          color={color}
-          transparent
-          opacity={sizes.atmosphereOpacity}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-        />
-      </mesh>
-    </group>
-  )
-}
-
-// ============================================================
-// CityLightGlow — PointLights at major node positions for
-// wireframe tinting (light pollution effect)
-// ============================================================
-function CityLightGlow({ surfacePositions }: { surfacePositions: Map<string, THREE.Vector3> }) {
-  const lights = useMemo(() => {
-    const result: { position: THREE.Vector3; color: string; id: string }[] = []
-    for (const region of BRAIN_REGIONS) {
-      if (getImportanceTier(region.id) !== 'major') continue
-      const pos = surfacePositions.get(region.id)
-      if (!pos) continue
-      result.push({
-        position: pos,
-        color: LOBE_COLORS[region.lobe],
-        id: region.id,
-      })
-    }
-    return result
-  }, [surfacePositions])
-
-  return (
-    <group>
-      {lights.map((light) => (
-        <pointLight
-          key={light.id}
-          position={light.position}
-          color={light.color}
-          intensity={0.08}
-          distance={0.15}
-          decay={2}
-        />
-      ))}
-    </group>
-  )
-}
-
-// ============================================================
-// ConnectionLines — luminous arcs that follow brain surface
-// ============================================================
-function ConnectionLines({ surfacePositions }: { surfacePositions: Map<string, THREE.Vector3> }) {
-  const viewMode = useBrainStore((s) => s.viewMode)
-  const selectedRegion = useBrainStore((s) => s.selectedRegion)
-  const hoveredRegion = useBrainStore((s) => s.hoveredRegion)
-
-  const lines = useMemo(() => {
-    return CONNECTIONS.map((conn, i) => {
-      const fromPos = surfacePositions.get(conn.from)
-      const toPos = surfacePositions.get(conn.to)
-      if (!fromPos || !toPos) return null
-
-      const start = fromPos.clone()
-      const end = toPos.clone()
-
-      // Midpoint between the two surface positions
-      const mid = start.clone().add(end).multiplyScalar(0.5)
-
-      // Push midpoint outward from center to follow the brain's curvature
-      // instead of cutting through the brain interior
-      const midDir = mid.clone().normalize()
-      const surfaceDist = Math.max(start.length(), end.length())
-      const targetDist = surfaceDist + 0.03 * (0.5 + conn.strength * 0.5)
-      mid.copy(midDir.multiplyScalar(targetDist))
-
-      const curve = new THREE.QuadraticBezierCurve3(start, mid, end)
-      const points = curve.getPoints(32)
-
-      return {
-        key: `${conn.from}-${conn.to}-${i}`,
-        points,
-        strength: conn.strength,
-        fromId: conn.from,
-        toId: conn.to,
-      }
-    }).filter(Boolean) as {
-      key: string
-      points: THREE.Vector3[]
-      strength: number
-      fromId: string
-      toId: string
-    }[]
-  }, [surfacePositions])
-
-  const focusRegion = hoveredRegion ?? selectedRegion
-
-  const visibleLines = useMemo(() => {
-    if (viewMode === 'connectivity') return lines
-    if (viewMode === 'activity') {
-      if (!activityState.active) return []
-      return lines.filter((l) => {
-        const fromAct = activityState.activations.find((a) => a.id === l.fromId)?.currentActivation ?? 0
-        const toAct = activityState.activations.find((a) => a.id === l.toId)?.currentActivation ?? 0
-        return fromAct > 0.3 && toAct > 0.3
-      })
-    }
-    if (!focusRegion) return []
-    return lines.filter((l) => l.fromId === focusRegion || l.toId === focusRegion)
-  }, [viewMode, focusRegion, lines])
-
-  return (
-    <group>
-      {visibleLines.map((line) => (
-        <ConnectionLine
-          key={line.key}
-          points={line.points}
-          strength={line.strength}
-        />
-      ))}
-    </group>
-  )
-}
-
-interface ConnectionLineProps {
-  points: THREE.Vector3[]
   strength: number
 }
 
-function ConnectionLine({ points, strength }: ConnectionLineProps) {
-  const lineObj = useMemo(() => {
-    const geo = new THREE.BufferGeometry().setFromPoints(points)
-    const mat = new THREE.LineBasicMaterial({
-      color: new THREE.Color('#00AACC'),
-      transparent: true,
-      opacity: 0.06 + strength * 0.35,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    })
-    return new THREE.Line(geo, mat)
-  }, [points, strength])
+// Module-level highway data for use by Particles
+let builtHighways: HighwayData[] = []
+export function getHighways(): HighwayData[] {
+  return builtHighways
+}
 
-  return <primitive object={lineObj} />
+function buildHighways(surfacePositions: Map<string, THREE.Vector3>, meshes: THREE.Mesh[]): HighwayData[] {
+  const highways: HighwayData[] = []
+
+  CONNECTIONS.forEach((conn, index) => {
+    const fromPos = surfacePositions.get(conn.from)
+    const toPos = surfacePositions.get(conn.to)
+    if (!fromPos || !toPos) return
+
+    const start = fromPos.clone()
+    const end = toPos.clone()
+
+    // Build 3-5 control points that hug the brain surface
+    const controlPoints: THREE.Vector3[] = [start.clone()]
+
+    // Number of intermediate points based on distance
+    const dist = start.distanceTo(end)
+    const numMidPoints = dist > 1.0 ? 3 : 2
+
+    for (let i = 1; i <= numMidPoints; i++) {
+      const t = i / (numMidPoints + 1)
+      // Interpolate between start and end
+      const interp = start.clone().lerp(end.clone(), t)
+      // Project this intermediate point onto the brain surface
+      const surfacePoint = projectPointOntoSurface(interp, meshes)
+      controlPoints.push(surfacePoint)
+    }
+
+    controlPoints.push(end.clone())
+
+    const curve = new THREE.CatmullRomCurve3(controlPoints)
+
+    // Radius based on connection strength: 0.003 to 0.008
+    const radius = 0.003 + conn.strength * 0.005
+    const glowRadius = radius * 1.5
+
+    const color = new THREE.Color(NEON_COLORS[conn.type])
+    const fromRegion = REGION_MAP.get(conn.from)
+    const toRegion = REGION_MAP.get(conn.to)
+
+    highways.push({
+      connection: conn,
+      curve,
+      radius,
+      glowRadius,
+      color,
+      fromName: fromRegion?.name ?? conn.from,
+      toName: toRegion?.name ?? conn.to,
+      key: `${conn.from}-${conn.to}-${index}`,
+      index,
+      strength: conn.strength,
+    })
+  })
+
+  return highways
+}
+
+// ============================================================
+// Single Neon Highway — TubeGeometry with glow
+// ============================================================
+interface NeonHighwayProps {
+  highway: HighwayData
+}
+
+function NeonHighway({ highway }: NeonHighwayProps) {
+  const coreRef = useRef<THREE.Mesh>(null)
+  const glowRef = useRef<THREE.Mesh>(null)
+
+  const selectedConnection = useBrainStore((s) => s.selectedConnection)
+  const hoveredConnection = useBrainStore((s) => s.hoveredConnection)
+  const selectConnection = useBrainStore((s) => s.selectConnection)
+  const setHoveredConnection = useBrainStore((s) => s.setHoveredConnection)
+  const viewMode = useBrainStore((s) => s.viewMode)
+
+  const isSelected = selectedConnection?.from === highway.connection.from
+    && selectedConnection?.to === highway.connection.to
+  const isHovered = hoveredConnection?.from === highway.connection.from
+    && hoveredConnection?.to === highway.connection.to
+  const somethingSelected = selectedConnection !== null
+
+  // Core tube geometry
+  const coreGeo = useMemo(() => {
+    return new THREE.TubeGeometry(highway.curve, 24, highway.radius, 4, false)
+  }, [highway.curve, highway.radius])
+
+  // Glow tube geometry (wider, dimmer)
+  const glowGeo = useMemo(() => {
+    return new THREE.TubeGeometry(highway.curve, 24, highway.glowRadius, 4, false)
+  }, [highway.curve, highway.glowRadius])
+
+  const handleClick = useCallback((e: ThreeEvent<MouseEvent>) => {
+    e.stopPropagation()
+    selectConnection(isSelected ? null : highway.connection)
+  }, [selectConnection, highway.connection, isSelected])
+
+  const handlePointerOver = useCallback((e: ThreeEvent<PointerEvent>) => {
+    e.stopPropagation()
+    setHoveredConnection(highway.connection)
+    document.body.style.cursor = 'pointer'
+  }, [setHoveredConnection, highway.connection])
+
+  const handlePointerOut = useCallback(() => {
+    setHoveredConnection(null)
+    document.body.style.cursor = 'default'
+  }, [setHoveredConnection])
+
+  // Animate opacity
+  useFrame((state) => {
+    if (!coreRef.current || !glowRef.current) return
+
+    const coreMat = coreRef.current.material as THREE.MeshBasicMaterial
+    const glowMat = glowRef.current.material as THREE.MeshBasicMaterial
+
+    // Base pulse
+    const rate = 0.6 + (highway.index % 7) * 0.12
+    const pulse = Math.sin(state.clock.elapsedTime * rate * Math.PI * 2) * 0.5 + 0.5
+
+    // Activity mode: check if both connected regions are active
+    let activityMultiplier = 1.0
+    if (viewMode === 'activity' && activityState.active) {
+      const fromAct = activityState.activations.find((a) => a.id === highway.connection.from)?.currentActivation ?? 0
+      const toAct = activityState.activations.find((a) => a.id === highway.connection.to)?.currentActivation ?? 0
+      activityMultiplier = Math.min(fromAct, toAct) * 2.0
+    }
+
+    let coreOpacity = (0.4 + pulse * 0.3) * activityMultiplier
+    let glowOpacity = (0.03 + pulse * 0.03) * activityMultiplier
+
+    if (isHovered) {
+      coreOpacity = 1.0
+      glowOpacity = 0.12
+    }
+    if (isSelected) {
+      coreOpacity = 1.0
+      glowOpacity = 0.15
+    }
+    if (somethingSelected && !isSelected && !isHovered) {
+      coreOpacity *= 0.15
+      glowOpacity *= 0.1
+    }
+
+    coreMat.opacity = Math.min(coreOpacity, 1.0)
+    glowMat.opacity = Math.min(glowOpacity, 0.2)
+  })
+
+  return (
+    <group>
+      {/* Core neon tube */}
+      <mesh
+        ref={coreRef}
+        geometry={coreGeo}
+        onClick={handleClick}
+        onPointerOver={handlePointerOver}
+        onPointerOut={handlePointerOut}
+      >
+        <meshBasicMaterial
+          color={highway.color}
+          transparent
+          opacity={0.5}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* Glow spread tube (wider, dimmer) */}
+      <mesh ref={glowRef} geometry={glowGeo}>
+        <meshBasicMaterial
+          color={highway.color}
+          transparent
+          opacity={0.05}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+    </group>
+  )
+}
+
+// ============================================================
+// NeonHighways — all highways together with mode-based filtering
+// ============================================================
+function NeonHighways({ surfacePositions }: { surfacePositions: Map<string, THREE.Vector3> }) {
+  const viewMode = useBrainStore((s) => s.viewMode)
+
+  const highways = useMemo(() => {
+    const built = buildHighways(surfacePositions, brainSurfaceMeshes)
+    builtHighways = built
+    return built
+  }, [surfacePositions])
+
+  // Filter based on view mode
+  const visibleHighways = useMemo(() => {
+    if (viewMode === 'connectivity') {
+      // All highways visible
+      return highways
+    }
+    if (viewMode === 'activity') {
+      // All highways — opacity is controlled per-highway via activity state
+      return highways
+    }
+    // Explorer mode: top 30 strongest connections
+    return [...highways]
+      .sort((a, b) => b.strength - a.strength)
+      .slice(0, 30)
+  }, [viewMode, highways])
+
+  return (
+    <group>
+      {visibleHighways.map((hw) => (
+        <NeonHighway key={hw.key} highway={hw} />
+      ))}
+    </group>
+  )
 }
 
 // ============================================================
 // BrainModel — the main composed component
+// NO NODES, NO SPHERES, NO DOTS — just highways on dark terrain
 // ============================================================
 export default function BrainModel() {
-  const selectRegion = useBrainStore((s) => s.selectRegion)
+  const selectConnection = useBrainStore((s) => s.selectConnection)
   const [surfacePositions, setSurfacePositions] = useState<Map<string, THREE.Vector3>>(new Map())
   const surfaceReady = surfacePositions.size > 0
 
   const handleMeshesReady = useCallback((meshes: THREE.Mesh[]) => {
+    brainSurfaceMeshes = meshes
     const positions = projectRegionsOntoSurface(meshes, BRAIN_REGIONS)
     surfacePositionsMap = positions
     setSurfacePositions(positions)
   }, [])
 
   const handleMiss = useCallback(() => {
-    selectRegion(null)
-  }, [selectRegion])
+    selectConnection(null)
+  }, [selectConnection])
 
   return (
     <group onPointerMissed={handleMiss}>
       <BrainWireframe onMeshesReady={handleMeshesReady} />
       <HUDRings />
       {surfaceReady && (
-        <>
-          {BRAIN_REGIONS.map((region, i) => {
-            const pos = surfacePositions.get(region.id)
-            if (!pos) return null
-            return (
-              <RegionNode
-                key={region.id}
-                region={region}
-                index={i}
-                surfacePosition={pos}
-              />
-            )
-          })}
-          <ConnectionLines surfacePositions={surfacePositions} />
-          <CityLightGlow surfacePositions={surfacePositions} />
-        </>
+        <NeonHighways surfacePositions={surfacePositions} />
       )}
     </group>
   )

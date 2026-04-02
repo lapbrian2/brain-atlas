@@ -18,7 +18,7 @@ function App() {
         <Canvas
           gl={{ antialias: true, localClippingEnabled: true }}
           performance={{ min: 0.5 }}
-          dpr={[1, 2]}
+          dpr={[1, 1.5]}
           camera={{ fov: 45, near: 0.1, far: 100, position: [0, 0.5, 3.5] }}
         >
           <color attach="background" args={['#020208']} />

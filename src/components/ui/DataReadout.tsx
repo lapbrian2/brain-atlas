@@ -33,7 +33,7 @@ const SCAN_PHRASES = [
 
 export default function DataReadout() {
   const viewMode = useBrainStore((s) => s.viewMode)
-  const selectedRegion = useBrainStore((s) => s.selectedRegion)
+  const selectedConnection = useBrainStore((s) => s.selectedConnection)
   const [flicker, setFlicker] = useState(0.30)
   const [alphaHz, setAlphaHz] = useState(10.2)
   const [scanText, setScanText] = useState(SCAN_PHRASES[0])
@@ -42,7 +42,9 @@ export default function DataReadout() {
   const typeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const phraseIndexRef = useRef(0)
 
-  const regionName = selectedRegion ? REGION_MAP.get(selectedRegion)?.name ?? '---' : '---'
+  const connectionLabel = selectedConnection
+    ? `${REGION_MAP.get(selectedConnection.from)?.name ?? selectedConnection.from} > ${REGION_MAP.get(selectedConnection.to)?.name ?? selectedConnection.to}`
+    : '---'
 
   // Flicker and alpha jitter
   useEffect(() => {
@@ -110,7 +112,7 @@ export default function DataReadout() {
       <div>CONNECTIONS: {CONNECTIONS.length}</div>
       <div>ALPHA: {alphaHz.toFixed(1)} Hz</div>
       <div>MODE: {VIEW_MODE_LABELS[viewMode] ?? viewMode.toUpperCase()}</div>
-      <div>REGION: {regionName.toUpperCase()}</div>
+      <div>TRACT: {connectionLabel.toUpperCase()}</div>
       <div style={{ marginTop: 8, fontSize: '8px', color: `rgba(0, 102, 136, ${flicker * 0.8})` }}>
         {typedText}<span style={{ opacity: Math.sin(Date.now() * 0.006) > 0 ? 1 : 0 }}>_</span>
       </div>

@@ -1,21 +1,11 @@
 import { useState } from 'react'
 import { useBrainStore } from '../../store/useBrainStore'
 
-const LOBE_COLORS: { label: string; color: string }[] = [
-  { label: 'Frontal', color: '#00DDFF' },
-  { label: 'Parietal', color: '#00AA88' },
-  { label: 'Temporal', color: '#FF6633' },
-  { label: 'Occipital', color: '#CC33FF' },
-  { label: 'Subcortical', color: '#FF3344' },
-  { label: 'Cerebellum', color: '#3366FF' },
-  { label: 'Brainstem', color: '#CCDDFF' },
-]
-
-const TRACT_COLORS: { label: string; color: string }[] = [
-  { label: 'Cortical', color: '#00E5FF' },
-  { label: 'Subcortical', color: '#FF4081' },
-  { label: 'Commissural', color: '#FFD700' },
-  { label: 'Projection', color: '#76FF03' },
+const HIGHWAY_COLORS: { label: string; color: string }[] = [
+  { label: 'Cortical', color: '#00FFEE' },
+  { label: 'Subcortical', color: '#FF00AA' },
+  { label: 'Commissural', color: '#FFCC00' },
+  { label: 'Projection', color: '#00FF66' },
 ]
 
 const ACTIVITY_RAMP: { label: string; color: string }[] = [
@@ -31,13 +21,6 @@ export default function LegendPanel() {
   const [collapsed, setCollapsed] = useState(false)
 
   if (viewMode === 'quiz') return null
-
-  const items =
-    viewMode === 'connectivity'
-      ? TRACT_COLORS
-      : viewMode === 'activity'
-        ? null
-        : LOBE_COLORS
 
   return (
     <div
@@ -122,28 +105,42 @@ export default function LegendPanel() {
               </div>
             </>
           ) : (
-            items?.map(({ label, color }) => (
+            <>
               <div
-                key={label}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '1px 0',
+                  color: 'rgba(0, 102, 136, 0.5)',
+                  fontSize: '9px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.15em',
+                  marginBottom: 4,
                 }}
               >
-                <div
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: '50%',
-                    background: color,
-                    flexShrink: 0,
-                  }}
-                />
-                <span style={{ color: 'rgba(136, 204, 221, 0.5)' }}>{label}</span>
+                Highway Types
               </div>
-            ))
+              {HIGHWAY_COLORS.map(({ label, color }) => (
+                <div
+                  key={label}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '1px 0',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 16,
+                      height: 3,
+                      background: color,
+                      borderRadius: 1,
+                      flexShrink: 0,
+                      boxShadow: `0 0 4px ${color}60`,
+                    }}
+                  />
+                  <span style={{ color: 'rgba(136, 204, 221, 0.5)' }}>{label}</span>
+                </div>
+              ))}
+            </>
           )}
         </div>
       )}

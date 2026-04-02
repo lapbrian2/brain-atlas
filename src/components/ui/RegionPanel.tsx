@@ -3,22 +3,62 @@ import { REGION_MAP } from '../../data/regions'
 import { getRegionConnections } from '../../data/connectome'
 import { useBrainStore } from '../../store/useBrainStore'
 
+/**
+ * RegionPanel — now shows CONNECTION info when a highway is clicked.
+ * Displays: source region, target region, connection type, strength,
+ * and the other connections each region participates in.
+ */
+
+const TYPE_LABELS: Record<string, string> = {
+  cortical: 'Cortical Pathway',
+  subcortical: 'Subcortical Pathway',
+  commissural: 'Commissural Fiber',
+  projection: 'Projection Tract',
+}
+
+const TYPE_COLORS: Record<string, string> = {
+  cortical: '#00FFEE',
+  subcortical: '#FF00AA',
+  commissural: '#FFCC00',
+  projection: '#00FF66',
+}
+
 export default function RegionPanel() {
-  const selectedRegion = useBrainStore((s) => s.selectedRegion)
-  const selectRegion = useBrainStore((s) => s.selectRegion)
+  const selectedConnection = useBrainStore((s) => s.selectedConnection)
+  const selectConnection = useBrainStore((s) => s.selectConnection)
 
-  const region = selectedRegion ? REGION_MAP.get(selectedRegion) : null
+  const fromRegion = selectedConnection ? REGION_MAP.get(selectedConnection.from) : null
+  const toRegion = selectedConnection ? REGION_MAP.get(selectedConnection.to) : null
 
-  const connections = useMemo(() => {
-    if (!selectedRegion) return []
-    return getRegionConnections(selectedRegion).map((c) => {
-      const otherId = c.from === selectedRegion ? c.to : c.from
-      const other = REGION_MAP.get(otherId)
-      return { id: otherId, name: other?.name ?? otherId, strength: c.strength, type: c.type, color: other?.color ?? '#888' }
-    })
-  }, [selectedRegion])
+  // Get other connections for the "from" region
+  const fromConnections = useMemo(() => {
+    if (!selectedConnection) return []
+    return getRegionConnections(selectedConnection.from)
+      .filter((c) => !(c.from === selectedConnection.from && c.to === selectedConnection.to))
+      .sort((a, b) => b.strength - a.strength)
+      .slice(0, 5)
+      .map((c) => {
+        const otherId = c.from === selectedConnection.from ? c.to : c.from
+        const other = REGION_MAP.get(otherId)
+        return { name: other?.name ?? otherId, strength: c.strength, type: c.type }
+      })
+  }, [selectedConnection])
 
-  const isOpen = region !== null
+  // Get other connections for the "to" region
+  const toConnections = useMemo(() => {
+    if (!selectedConnection) return []
+    return getRegionConnections(selectedConnection.to)
+      .filter((c) => !(c.from === selectedConnection.from && c.to === selectedConnection.to))
+      .sort((a, b) => b.strength - a.strength)
+      .slice(0, 5)
+      .map((c) => {
+        const otherId = c.from === selectedConnection.to ? c.to : c.from
+        const other = REGION_MAP.get(otherId)
+        return { name: other?.name ?? otherId, strength: c.strength, type: c.type }
+      })
+  }, [selectedConnection])
+
+  const isOpen = selectedConnection !== null && fromRegion !== null && toRegion !== null
 
   return (
     <div
@@ -28,71 +68,137 @@ export default function RegionPanel() {
         opacity: isOpen ? 1 : 0,
       }}
     >
-      {region && (
+      {isOpen && fromRegion && toRegion && selectedConnection && (
         <>
-          <button className="region-panel__close" onClick={() => selectRegion(null)}>
+          <button className="region-panel__close" onClick={() => selectConnection(null)}>
             x
           </button>
-          <div className="region-panel__lobe-badge" style={{ borderColor: region.color }}>
-            {region.lobe}
+
+          {/* Connection type badge */}
+          <div
+            className="region-panel__lobe-badge"
+            style={{ borderColor: TYPE_COLORS[selectedConnection.type] ?? '#00FFEE' }}
+          >
+            {TYPE_LABELS[selectedConnection.type] ?? selectedConnection.type}
           </div>
-          <h2 className="region-panel__name">{region.name}</h2>
-          <p className="region-panel__desc">{region.description}</p>
 
-          {region.brodmannAreas && region.brodmannAreas.length > 0 && (
-            <>
-              <h3 className="region-panel__heading">Brodmann Areas</h3>
-              <p className="region-panel__detail">
-                {region.brodmannAreas.map((ba) => `BA ${ba}`).join(', ')}
-              </p>
-            </>
-          )}
+          {/* Connection title */}
+          <h2 className="region-panel__name">
+            {fromRegion.name} &rarr; {toRegion.name}
+          </h2>
 
-          <h3 className="region-panel__heading">Blood Supply</h3>
-          <p className="region-panel__detail">{region.bloodSupply}</p>
+          {/* Strength bar */}
+          <div style={{ marginBottom: 16 }}>
+            <h3 className="region-panel__heading" style={{ marginTop: 0, borderTop: 'none', paddingTop: 0 }}>
+              Connection Strength
+            </h3>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}>
+              <div style={{
+                flex: 1,
+                height: 4,
+                background: 'rgba(0, 170, 204, 0.1)',
+                borderRadius: 2,
+                overflow: 'hidden',
+              }}>
+                <div style={{
+                  width: `${selectedConnection.strength * 100}%`,
+                  height: '100%',
+                  background: TYPE_COLORS[selectedConnection.type] ?? '#00FFEE',
+                  borderRadius: 2,
+                  boxShadow: `0 0 8px ${TYPE_COLORS[selectedConnection.type] ?? '#00FFEE'}40`,
+                }} />
+              </div>
+              <span className="region-panel__conn-meta">
+                {(selectedConnection.strength * 100).toFixed(0)}%
+              </span>
+            </div>
+          </div>
+
+          {/* Source region */}
+          <h3 className="region-panel__heading">Source Region</h3>
+          <p className="region-panel__detail" style={{ color: '#00DDFF' }}>
+            {fromRegion.name}
+          </p>
+          <p className="region-panel__desc">{fromRegion.description}</p>
 
           <h3 className="region-panel__heading">Functions</h3>
           <div className="region-panel__tags">
-            {region.functions.map((fn) => (
+            {fromRegion.functions.slice(0, 4).map((fn) => (
               <span key={fn} className="region-panel__tag">{fn}</span>
             ))}
           </div>
 
-          <h3 className="region-panel__heading">Clinical Significance</h3>
-          <p className="region-panel__detail">{region.clinicalSignificance}</p>
+          {/* Other connections from source */}
+          {fromConnections.length > 0 && (
+            <>
+              <h3 className="region-panel__heading">
+                Other {fromRegion.name} Connections
+              </h3>
+              <ul className="region-panel__list">
+                {fromConnections.map((c, i) => (
+                  <li key={i} className="region-panel__conn">
+                    <span className="region-panel__conn-btn" style={{ cursor: 'default' }}>
+                      <span
+                        className="region-panel__conn-dot"
+                        style={{ background: TYPE_COLORS[c.type] ?? '#888' }}
+                      />
+                      {c.name}
+                    </span>
+                    <span className="region-panel__conn-meta">
+                      {(c.strength * 100).toFixed(0)}%
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
 
-          <h3 className="region-panel__heading">Associated Pathologies</h3>
+          {/* Target region */}
+          <h3 className="region-panel__heading">Target Region</h3>
+          <p className="region-panel__detail" style={{ color: '#00DDFF' }}>
+            {toRegion.name}
+          </p>
+          <p className="region-panel__desc">{toRegion.description}</p>
+
+          <h3 className="region-panel__heading">Functions</h3>
           <div className="region-panel__tags">
-            {region.pathologies.map((p) => (
-              <span key={p} className="region-panel__tag region-panel__tag--pathology">{p}</span>
+            {toRegion.functions.slice(0, 4).map((fn) => (
+              <span key={fn} className="region-panel__tag">{fn}</span>
             ))}
           </div>
 
-          <h3 className="region-panel__heading">
-            Connections ({connections.length})
-          </h3>
-          <ul className="region-panel__list">
-            {connections
-              .sort((a, b) => b.strength - a.strength)
-              .slice(0, 8)
-              .map((c) => (
-                <li key={c.id} className="region-panel__conn">
-                  <button
-                    className="region-panel__conn-btn"
-                    onClick={() => selectRegion(c.id)}
-                  >
-                    <span
-                      className="region-panel__conn-dot"
-                      style={{ background: c.color }}
-                    />
-                    {c.name}
-                  </button>
-                  <span className="region-panel__conn-meta">
-                    {(c.strength * 100).toFixed(0)}%
-                  </span>
-                </li>
-              ))}
-          </ul>
+          {/* Other connections to target */}
+          {toConnections.length > 0 && (
+            <>
+              <h3 className="region-panel__heading">
+                Other {toRegion.name} Connections
+              </h3>
+              <ul className="region-panel__list">
+                {toConnections.map((c, i) => (
+                  <li key={i} className="region-panel__conn">
+                    <span className="region-panel__conn-btn" style={{ cursor: 'default' }}>
+                      <span
+                        className="region-panel__conn-dot"
+                        style={{ background: TYPE_COLORS[c.type] ?? '#888' }}
+                      />
+                      {c.name}
+                    </span>
+                    <span className="region-panel__conn-meta">
+                      {(c.strength * 100).toFixed(0)}%
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          {/* Clinical notes */}
+          <h3 className="region-panel__heading">Clinical Significance</h3>
+          <p className="region-panel__detail">{fromRegion.clinicalSignificance}</p>
         </>
       )}
     </div>

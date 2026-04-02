@@ -1,5 +1,3 @@
-import { useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
 import {
   EffectComposer,
   Bloom,
@@ -7,61 +5,17 @@ import {
   ToneMapping,
   ChromaticAberration,
 } from '@react-three/postprocessing'
-import { ToneMappingMode, BlendFunction, Effect } from 'postprocessing'
-import { Vector2, Uniform } from 'three'
+import { ToneMappingMode, BlendFunction } from 'postprocessing'
+import { Vector2 } from 'three'
 
 const chromaticOffset = new Vector2(0.002, 0.002)
-
-/**
- * Custom film grain effect for tech/holographic aesthetic.
- */
-class FilmGrainEffect extends Effect {
-  constructor() {
-    super('FilmGrainEffect', /* glsl */ `
-      uniform float time;
-
-      float grainHash(vec2 p) {
-        vec3 p3 = fract(vec3(p.xyx) * 0.1031);
-        p3 += dot(p3, p3.yzx + 33.33);
-        return fract((p3.x + p3.y) * p3.z);
-      }
-
-      void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
-        float grain = grainHash(uv * 500.0 + time * 100.0) - 0.5;
-        outputColor = inputColor + vec4(vec3(grain * 0.025), 0.0);
-      }
-    `, {
-      uniforms: new Map([
-        ['time', new Uniform(0.0)],
-      ]),
-    })
-  }
-
-  update(_renderer: unknown, _inputBuffer: unknown, deltaTime?: number) {
-    const u = this.uniforms.get('time')
-    if (u && deltaTime !== undefined) {
-      u.value += deltaTime
-    }
-  }
-}
-
-function FilmGrain() {
-  const effectRef = useRef<FilmGrainEffect>(null)
-  const effect = useRef(new FilmGrainEffect()).current
-
-  useFrame((_, delta) => {
-    effect.update(null, null, delta)
-  })
-
-  return <primitive ref={effectRef} object={effect} />
-}
 
 export default function PostProcessing() {
   return (
     <EffectComposer>
       <Bloom
-        intensity={0.8}
-        luminanceThreshold={0.3}
+        intensity={0.5}
+        luminanceThreshold={0.5}
         luminanceSmoothing={0.5}
         mipmapBlur
       />
@@ -72,7 +26,6 @@ export default function PostProcessing() {
         blendFunction={BlendFunction.NORMAL}
       />
       <Vignette offset={0.15} darkness={0.9} />
-      <FilmGrain />
       <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
     </EffectComposer>
   )
